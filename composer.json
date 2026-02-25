@@ -1,7 +1,7 @@
 {
     "name": "arkashop/ominik-magento2",
     "description": "Omnik Magento 2 Modules - Synced by ArkaShop",
-    "type": "metapackage",
+    "type": "magento2-module",
     "version": "1.0.0",
     "license": "proprietary",
     "require": {
