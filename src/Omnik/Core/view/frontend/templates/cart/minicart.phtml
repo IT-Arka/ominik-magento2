@@ -1,0 +1,34 @@
+<?php
+/** @var Omnik\Core\Block\Cart\Sidebar $block */
+
+/** @var $helper \Omnik\Core\Helper\Cart */
+$helper = $this->helper('\Omnik\Core\Helper\Cart');
+
+?>
+
+<?php if ($block->isFreeShippingEligible()): ?>
+    <div id="cart-page" class="block-freeShipping">
+        <?php if ($helper->getSummaryCount()) { ?>
+            <div id="block-cart-list" data-bind="scope:'minicart-addons'" class="block">
+                <!-- ko template: getTemplate() --><!-- /ko -->
+                <script>
+                    maxpriceShipping = <?= /* @escapeNotVerified */ $this->getConfigForShippingBar() ?>;
+                    isFreeShipping = <?= (int)$block->freeShippingIsAvailable()?>;
+                </script>
+                <script type="text/x-magento-init">
+         {
+             "#block-cart-list": {
+                 "Magento_Ui/js/core/app": <?php /* @escapeNotVerified */
+                    echo $block->getJsLayout(); ?>
+             },
+             "*": {
+                 "Magento_Ui/js/block-loader": "<?= /* @escapeNotVerified */
+                    $block->getViewFileUrl('images/loader-1.gif') ?>"
+             }
+         }
+
+                </script>
+            </div>
+        <?php } ?>
+    </div>
+<?php endif; ?>

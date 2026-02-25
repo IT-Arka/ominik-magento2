@@ -1,0 +1,295 @@
+<?php
+/**
+ * @var $block CustomCard
+ * @var Escaper $escaper
+ * @var SecureHtmlRenderer $secureRenderer
+ */
+
+use Omnik\Core\Block\Product\ListProduct\CustomCard;
+use Omnik\Core\Helper\CustomTierPrice;
+use Magento\Catalog\Block\Product\ReviewRendererInterface;
+use Magento\Catalog\Helper\Output;
+use Magento\Catalog\Model\Product;
+use Magento\Framework\App\Action\Action;
+use Magento\Framework\Escaper;
+use Magento\Framework\View\Helper\SecureHtmlRenderer;
+use Magento\Wishlist\Block\Customer\Wishlist\Item\Column\Cart;
+use Magento\Wishlist\Block\Customer\Wishlist\Item\Column\Remove;
+
+$removeBlock = $this->getLayout()->createBlock(Remove::class);
+$_helper = $block->getData('outputHelper');
+$pos = $block->getPositioned();
+/** @var Output $_helper */
+$_helper = $block->getData('outputHelper');
+/** @var Product */
+$_product = $this->getProduct();
+/** @var Output */
+$outputHelper = $this->helper(Output::class);
+$isGrid = $block->getMode() === 'grid';
+$viewMode = $isGrid ? 'grid' : 'list';
+$imageDisplayArea = $isGrid ? 'category_page_grid' : 'category_page_list';
+$showDescription = !$isGrid;
+$templateType = $isGrid ? ReviewRendererInterface::SHORT_VIEW : ReviewRendererInterface::FULL_VIEW;
+$isWeightSalable = (bool)$block->isWeightSalable($_product->getId());
+$customTierPriceHelper     = $this->helper(CustomTierPrice::class);
+?>
+<li class="item product product-item">
+    <div class="product-item-info"
+         id="product-item-info_<?= /* @noEscape */
+         $_product->getId() ?>"
+         data-container="product-<?= /* @noEscape */
+         $viewMode ?>">
+        <?php
+        $productImage = $block->getImage($_product, $imageDisplayArea);
+        if ($pos != null) {
+            $position = 'left:' . $productImage->getWidth() . 'px;'
+                . 'top:' . $productImage->getHeight() . 'px;';
+        }
+        ?>
+
+        <a href="#"
+           data-post='<?= /* @noEscape */
+           $block->getAddToWishlistParams($_product) ?>' class="add-towishlist" data-action="add-to-wishlist"
+           title="<?= $block->escapeHtmlAttr(__('Add to Wish List')) ?>">
+            <span class="ph-heart"></span>
+        </a>
+
+
+        <?php $_wishlistItem = $block->getWishistItem($_product->getId()) ?>
+        <?php if ($_wishlistItem): ?>
+            <a href="#" data-role="remove" data-post-remove='<?= /* @noEscape */
+            $removeBlock->getItemRemoveParams($_wishlistItem) ?>'
+               title="<?= $block->escapeHtmlAttr(__('Remove Item')) ?>"
+               class="btn-remove action delete">
+                <span class="ph-trash"></span>
+            </a>
+        <?php endif; ?>
+
+        <?php // Product Image ?>
+        <a href="<?= $escaper->escapeUrl($_product->getProductUrl()) ?>"
+           class="product photo product-item-photo"
+           tabindex="-1">
+            <?= $productImage->toHtml() ?>
+        </a>
+
+        <div class="product details product-item-details">
+            <div class="custom-card">
+                <div class="product product-item-actions">
+                    <?php $scope = $_product->getId() . '-' . $block->getIterator(); ?>
+                    <?php $stockData = $block->getStockData($_product); ?>
+                    <?php $postParams = $block->getAddToCartPostParams($_product); ?>
+                    <?php if ($_product->isSaleable()): ?>
+                        <form data-role="tocart-form"
+                              data-product-sku="<?= $escaper->escapeHtml($_product->getSku()) ?>"
+                              action="<?= $escaper->escapeUrl($postParams['action']) ?>"
+                              method="post">
+
+
+                            <!-- start details produtct -->
+                            <div class="product-content">
+                                <?php $_productNameStripped = $block->stripTags($_product->getName(), null, true); ?>
+                                <strong class="product name product-item-name">
+                                    <a class="product-item-link"
+                                       href="<?= $escaper->escapeUrl($_product->getProductUrl()) ?>">
+                                        <?= /* @noEscape */
+                                        $_helper->productAttribute($_product, $_product->getName(), 'name') ?>
+                                    </a>
+                                </strong>
+                                <?= $block->getReviewsSummaryHtml($_product, $templateType) ?>
+                                <?= /* @noEscape */
+                                $block->getProductPrice($_product) ?>
+
+                                <?php if ($isWeightSalable): ?>
+                                    <span class="data weight" id="regular-weight">
+                                         <?php echo '1 UN (Aprox. ' . number_format($stockData['step'], 2) . ' Kg)' ?>
+                                     </span>
+                                <?php endif; ?>
+                                <?= $block->getProductDetailsHtml($_product) ?>
+
+                            </div>
+
+                            <?php if ($customTierPriceHelper->activeTierPrice()): ?>
+                                <div class="tier-price-card">
+                                    <ul class="prices-tier items">
+                                        <?php foreach ($customTierPriceHelper->getTierPrices($_product) as $tierPrice) : ?>
+                                            <li class="item">
+                                                Leve <?= $tierPrice["price_qty"] ?> por
+                                                <span class="price-container price-tier_price tax weee">
+                                                <span class="price-wrapper "><span
+                                                        class="price"><?= $tierPrice["price"] ?></span></span></span>
+                                                <strong class="benefit">economize
+                                                    <span class="percent tier-0">&nbsp;<?= $tierPrice["save_percent"] ?></span>%</strong>
+                                            </li>
+                                        <?php endforeach ?>
+                                    </ul>
+                            </div>
+                            <?php endif ?>
+                            <!-- end details produtct -->
+
+                            <?= $block->getLayout()
+                                ->createBlock(\Omnik\Core\Block\Component\QtyCounter::class)
+                                ->setJsConfig([
+                                    'min' => $stockData['min_qty'],
+                                    'step' => null,
+                                    'value' => $stockData['default'],
+                                    'extraAttributes' => [
+                                        'data-validate' => json_encode($block->getValidators($stockData)),
+                                    ],
+                                    'weightProduct' => $block->getWeightProduct($_product->getSku()),
+                                    'scopeButtons' => "buttons-{$_product->getId()}",
+                                    'weightSalable' => $isWeightSalable,
+                                    'customStep' => $stockData['step']
+                                ])
+                                ->toHtml() ?>
+
+                            <input type="hidden"
+                                   name="product"
+                                   value="<?= /* @noEscape */
+                                   $postParams['data']['product'] ?>">
+                            <input type="hidden"
+                                   name="<?= /* @noEscape */
+                                   Action::PARAM_NAME_URL_ENCODED ?>"
+                                   value="<?=
+                                   /* @noEscape */
+                                   $postParams['data'][Action::PARAM_NAME_URL_ENCODED]
+                                   ?>">
+                            <?= $block->getBlockHtml('formkey') ?>
+
+                            <?php if ($this->getWishlist()): ?>
+                                <?php $wishlistBlock = $this->getLayout()->createBlock(Cart::class); ?>
+
+                                <div class="actions-primary">
+                                    <button type="button" data-role="tocart"
+                                            id="wishlist-<?= $this->getWishlist()->getId() ?>"
+                                            data-post='<?= /* @noEscape */
+                                            $wishlistBlock->getItemAddToCartParams($this->getWishlist()) ?>'
+                                            title="<?= $block->escapeHtmlAttr(__('Add to Cart')) ?>"
+                                            data-item-id="<?= $block->escapeHtmlAttr($this->getWishlist()->getId()) ?>"
+                                            class="action tocart primary">
+                                        <span><?= $block->escapeHtml(__('Add to Cart')) ?></span>
+                                    </button>
+                                </div>
+                            <?php else: ?>
+                                <button type="submit"
+                                        title="<?= $escaper->escapeHtmlAttr(__('Add')) ?>"
+                                        class="action tocart primary">
+                                    <span><?= $escaper->escapeHtml(__('Add')) ?></span>
+                                </button>
+                            <?php endif; ?>
+                        </form>
+                    <?php else: ?>
+                        <?php if ($_product->isAvailable()): ?>
+                            <div class="stock available">
+                                <span><?= $escaper->escapeHtml(__('In stock')) ?></span></div>
+                        <?php else: ?>
+                            <div class="stock unavailable">
+                                <div class="container-stock">
+
+                                    <strong class="product name product-item-name">
+                                        <a class="product-item-link"
+                                           href="<?= $escaper->escapeUrl($_product->getProductUrl()) ?>">
+                                            <?= /* @noEscape */
+                                            $_helper->productAttribute($_product, $_product->getName(), 'name') ?>
+                                        </a>
+                                    </strong>
+
+                                    <span class="unavailable">
+                                        <?= $escaper->escapeHtml(__('Product Unavailable')) ?>
+                                    </span>
+
+
+                                </div>
+
+                                <div class="actions-primary">
+                                    <a class="product-item-link"
+                                       href="<?= $escaper->escapeUrl($_product->getProductUrl()) ?>">
+                                    <button type="button" class="action tocart primary">
+                                        <span><?= $block->escapeHtml(__('Tell me when you arrive')) ?></span>
+                                    </button>
+                                    </a>
+
+                                </div>
+
+                            </div>
+
+                        <?php endif; ?>
+                    <?php endif; ?>
+
+                    <?= ($pos && strpos($pos, $viewMode . '-primary')) ?
+                        /* @noEscape */
+                        $secureRenderer->renderStyleAsTag(
+                            $position,
+                            'product-item-info_' . $_product->getId() . ' div.actions-primary'
+                        ) : '' ?>
+                    <div data-role="add-to-links" class="actions-secondary">
+                        <?php if ($addToBlock = $block->getChildBlock('addto')): ?>
+                            <?= $addToBlock->setProduct($_product)->getChildHtml() ?>
+                        <?php endif; ?>
+                    </div>
+                    <?= ($pos && strpos($pos, $viewMode . '-secondary')) ?
+                        /* @noEscape */
+                        $secureRenderer->renderStyleAsTag(
+                            $position,
+                            'product-item-info_' . $_product->getId() . ' div.actions-secondary'
+                        ) : '' ?>
+                </div>
+                <?php if ($showDescription): ?>
+                    <div class="product description product-item-description">
+                        <?= /* @noEscape */
+                        $_helper->productAttribute(
+                            $_product,
+                            $_product->getShortDescription(),
+                            'short_description'
+                        ) ?>
+                        <a href="<?= $escaper->escapeUrl($_product->getProductUrl()) ?>"
+                           title="<?= /* @noEscape */
+                           $_productNameStripped ?>"
+                           class="action more"><?= $escaper->escapeHtml(__('Learn More')) ?></a>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+    <?= ($pos && strpos($pos, $viewMode . '-actions')) ?
+        /* @noEscape */
+        $secureRenderer->renderStyleAsTag(
+            $position,
+            'product-item-info_' . $_product->getId() . ' div.product-item-actions'
+        ) : '' ?>
+    <?php if ($this->getWishlist()): ?>
+        <script type="text/javascript">
+            require(['jquery'], function ($) {
+                $("#wishlist-<?= $this->getWishlist()->getId() ?>").click(function () {
+                    let realQty = $(this).parent().siblings('.qty-change-wrapper').children('.qty-counter').children('.control').children('#qty').val()
+
+                    if (realQty == undefined) {
+                        return
+                    }
+
+                    let customObj = {
+                        action: '<?= $escaper->escapeUrl($postParams['action']) ?>',
+                        data: {qty: parseInt(realQty)}
+                    };
+                    $(this).attr('data-post', JSON.stringify(customObj))
+                })
+            });
+        </script>
+    <?php endif; ?>
+    <script type="text/x-magento-init">
+        {
+            "*": {
+                "Magento_Ui/js/core/app": {
+                    "components": {
+                        "buttons-<?= $scope ?>": {
+                            "weightProduct": <?= $block->getWeightProduct($_product->getSku()) ?>,
+                            "weightSalable": "<?= $isWeightSalable ?>",
+                            "min": "<?= $stockData['min_qty'] ?>",
+                            "customStep": "<?= $stockData['step'] ?>"
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</li>
+

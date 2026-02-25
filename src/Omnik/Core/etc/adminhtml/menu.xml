@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
+    <menu>
+        <add id="Omnik_NotifyOmnik::notify" title="Integração Omnik"
+             module="Omnik_Core" sortOrder="10" resource="Omnik_NotifyOmnik::notify"
+             dependsOnConfig="omnik_grid_product_integration/grid/enable"/>
+
+        <add id="Omnik_NotifyOmnik::grid" title="Integração de produtos"
+             module="Omnik_Core" sortOrder="10" action="notify/grid"
+             resource="Omnik_NotifyOmnik::grid" parent="Omnik_NotifyOmnik::notify"/>
+    </menu>
+</config>

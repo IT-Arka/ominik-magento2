@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <omnik_integration>
+            <general>
+                <enable>1</enable>
+                <mode>staging</mode>
+                <url>https://api.sandbox.omnik.io/HUBSAN</url>
+                <url_catalog>https://api.sandbox.omnik.io/v1/catalog</url_catalog>
+                <url_freight>https://api.sandbox.omnik.io/v1/freight</url_freight>
+                <timeout>300</timeout>
+                <log_requests>1</log_requests>
+            </general>
+        </omnik_integration>
+        <omnik_grid_product_integration>
+            <grid>
+                <enable>0</enable>
+            </grid>
+        </omnik_grid_product_integration>
+        <checkout>
+            <cart>
+                <freeshipping_progress_enable>0</freeshipping_progress_enable>
+                <freeshipping_progress_min_total>0</freeshipping_progress_min_total>
+            </cart>
+        </checkout>
+        <carriers>
+            <omnik>
+                <active>1</active>
+                <sallowspecific>0</sallowspecific>
+                <model>Omnik\Core\Model\Carrier\Method</model>
+                <name>Omnik Shipping</name>
+                <price></price>
+                <title>Omnik Shipping</title>
+            </omnik>
+        </carriers>
+
+        <payment>
+            <splitorder>
+                <active>1</active>
+                <title>Split Order</title>
+                <model>Omnik\Core\Model\SplitOrderPayment</model>
+            </splitorder>
+        </payment>
+        <status_mapping>
+            <mapping_table></mapping_table>
+        </status_mapping>
+        <advanced>
+            <debug_mode>0</debug_mode>
+            <sync_frequency>60</sync_frequency>
+        </advanced>
+        <omnik_core>
+            <general>
+                <attempts>3</attempts>
+                <timeout_minutes>5</timeout_minutes>
+            </general>
+        </omnik_core>
+    </default>
+</config>

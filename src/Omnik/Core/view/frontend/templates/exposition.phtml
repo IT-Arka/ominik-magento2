@@ -1,0 +1,24 @@
+<?php
+// get current product data
+$product = $block->getProduct();
+$file = $this->helper(\Omnik\Core\Helper\File::class);
+
+?>
+
+<div class="image-disposicao">
+    <div class="first-image">
+        <img src="<?= $file->getImage($product, 'first', $block) ?>" />
+    </div>
+
+    <div class="second-image">
+        <img src="<?= $file->getImage($product, 'second', $block) ?>" />
+    </div>
+
+</div>
+
+<?php if ($file->hasFile($product)) : ?>
+<a href="<?= $block->getBaseUrl() ?>product_file/download/index/product_id/<?= $product->getId() ?>">
+    <?= __("Print out product's PDF.") ?>
+</a>
+<?php endif; ?>
+<div class="image"></div>

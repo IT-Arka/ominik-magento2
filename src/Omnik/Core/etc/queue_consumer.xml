@@ -1,0 +1,14 @@
+<?xml version="1.0" ?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework-message-queue:etc/consumer.xsd">
+    <!-- CONSUMER PRICE UPDATE -->
+    <consumer name="price.update"
+              queue="price.update.queue"
+              connection="amqp"
+              handler="Omnik\Core\Model\Consumer\Price\UpdatePrice::processMessage"/>
+
+    <!-- CONSUMER STOCK UPDATE -->
+    <consumer name="stock.update"
+              queue="stock.update.queue"
+              connection="amqp"
+              handler="Omnik\Core\Model\Consumer\Stock\UpdateStock::processMessage"/>
+</config>

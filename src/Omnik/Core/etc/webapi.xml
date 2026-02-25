@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Webapi:etc/webapi.xsd">
+
+    <route url="/V1/notify-omnik/notify" method="POST">
+        <service class="Omnik\Core\Api\NotifyInterface" method="execute"/>
+        <resources>
+            <resource ref="Omnik_Core::notify" />
+        </resources>
+    </route>
+
+    <!-- apis para testar as crons de notificação -->
+    <route url="/V1/notify-omnik/notify-teste" method="POST">
+        <service class="Omnik\Core\Api\NotifyTesteInterface" method="execute"/>
+        <resources>
+            <resource ref="anonymous" />
+        </resources>
+    </route>
+
+    <route url="/V1/notify-omnik/get-product-moderation-test" method="GET">
+        <service class="Omnik\Core\Api\ProductModerationTestInterface" method="execute"/>
+        <resources>
+            <resource ref="anonymous" />
+        </resources>
+    </route>
+
+    <route url="/V1/catalog/price-per-seller" method="POST">
+        <service class="Omnik\Core\Api\PricePerSellerInterface" method="execute"/>
+        <resources>
+            <resource ref="anonymous"/>
+        </resources>
+    </route>
+
+    <route url="/V1/catalog/price-products-section" method="POST">
+        <service class="Omnik\Core\Api\PriceProductsSectionInterface" method="execute"/>
+        <resources>
+            <resource ref="anonymous"/>
+        </resources>
+    </route>
+
+    <route url="/V1/catalog/valid-select-combo" method="POST">
+        <service class="Omnik\Core\Api\ValidSelectComboInterface" method="execute"/>
+        <resources>
+            <resource ref="anonymous"/>
+        </resources>
+    </route>
+
+    <route url="/V1/catalog/valid-swatch" method="POST">
+        <service class="Omnik\Core\Api\ValidSwatchInterface" method="execute"/>
+        <resources>
+            <resource ref="anonymous"/>
+        </resources>
+    </route>
+</routes>

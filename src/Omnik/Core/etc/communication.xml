@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Communication/etc/communication.xsd">
+    <!-- QUEUE PRICE UPDATE -->
+    <topic name="price.update" request="Omnik\Core\Api\Data\Price\PriceQueueInterface"/>
+
+    <!-- QUEUE STOCK UPDATE -->
+    <topic name="stock.update" request="Omnik\Core\Api\Data\Stock\StockQueueInterface"/>
+</config>

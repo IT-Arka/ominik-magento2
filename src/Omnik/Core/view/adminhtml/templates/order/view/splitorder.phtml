@@ -1,0 +1,22 @@
+<?php
+/**
+ * @var \Magento\Sales\Block\Adminhtml\Order\View\Tab\Info $block
+ */
+
+use Omnik\Core\Api\SplitOrderInterface;
+
+$order = $block->getOrder();
+
+?>
+<section class="admin__page-section">
+    <div class="admin__page-section-title">
+        <span class="title"><?= $block->escapeHtml(__('Split Order Information')) ?></span>
+    </div>
+    <div class="admin__page-section-content">
+        <p><?= $block->escapeHtml(__('Order type')) ?>: <?= $order->getData(SplitOrderInterface::SPLIT_ORDER_TYPE) ?></p>
+        <?php if ($order->getData(SplitOrderInterface::SPLIT_ORDER_TYPE) === SplitOrderInterface::SPLIT_ORDER_TYPE_CHILD): ?>
+            <p><?= $block->escapeHtml(__('Order Parent Id')) ?>: <?= $order->getData(SplitOrderInterface::SPLIT_ORDER_PARENT_ID) ?></p>
+            <p><?= $block->escapeHtml(__('Order Has Integrated Omnik')) ?>: <?= $order->getData(SplitOrderInterface::SPLIT_ORDER_HAS_INTEGRATED) ? 'Sim' : 'Não'; ?></p>
+        <?php endif; ?>
+    </div>
+</section>

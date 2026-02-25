@@ -1,0 +1,128 @@
+{
+    "omnik_notify_omnik": {
+        "column": {
+            "entity_id": true,
+            "seller_id": true,
+            "event": true,
+            "resource_type": true,
+            "resource_id": true,
+            "resource_uri": true,
+            "resource_market_place_id": true,
+            "resource_market_place_uri": true,
+            "status": true,
+            "date": true,
+            "created_at": true,
+            "updated_at": true,
+            "seller": true,
+            "store_id": true,
+            "from_price": true,
+            "price": true,
+            "stock": true,
+            "error_body": true,
+            "attempts": true
+        },
+        "constraint": {
+            "PRIMARY": true
+        }
+    },
+    "omnik_seller": {
+        "column": {
+            "entity_id": true,
+            "omnik_id": true,
+            "name": true,
+            "document": true,
+            "created_at": true,
+            "updated_at": true,
+            "active": true,
+            "hub_session_id": true,
+            "company_name": true,
+            "fantasy_name": true,
+            "cnae": true,
+            "state_registration": true,
+            "municipal_registration": true,
+            "tax_regime": true,
+            "holding": true,
+            "matrix": true,
+            "branch": true,
+            "zipcode_from": true,
+            "zipcode_to": true,
+            "zipcode_range": true,
+            "date_accession_national_simple": true,
+            "distributor_freight": true,
+            "store_id": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "OMNIK_SELLER_OMNIK_ID": true
+        }
+    },
+    "omnik_brand": {
+        "column": {
+            "entity_id": true,
+            "tenant": true,
+            "operator": true,
+            "brand_id": true,
+            "brand_code": true,
+            "brand_name": true,
+            "create_date": true,
+            "last_update": true,
+            "created_at": true,
+            "updated_at": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "OMNIK_BRAND_BRAND_CODE": true
+        }
+    },
+    "omnik_product_variant": {
+        "column": {
+            "entity_id": true,
+            "tenant": true,
+            "operator": true,
+            "variant": true,
+            "variant_id": true,
+            "variant_code": true,
+            "variant_name": true,
+            "variant_option": true,
+            "create_date": true,
+            "last_update": true,
+            "created_at": true,
+            "updated_at": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "OMNIK_PRODUCT_VARIANT_VARIANT_CODE": true
+        }
+    },
+    "omnik_omnik_freight_rates": {
+        "column": {
+            "entity_id": true,
+            "quote_id": true,
+            "delivery_method_id": true,
+            "seller_tenant": true,
+            "body": true,
+            "created_at": true
+        },
+        "constraint": {
+            "PRIMARY": true
+        }
+    },
+    "sales_order": {
+        "column": {
+            "split_order_type": true,
+            "split_order_parent_id": true,
+            "has_integrated_omnik": true
+        }
+    },
+    "quote": {
+        "column": {
+            "split_order_type": true,
+            "split_order_parent_id": true
+        }
+    },
+    "sales_order_grid": {
+        "column": {
+            "has_integrated_omnik": true
+        }
+    }
+}

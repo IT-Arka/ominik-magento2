@@ -1,0 +1,285 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <type name="Magento\Framework\Console\CommandList">
+        <arguments>
+            <argument name="commands" xsi:type="array">
+                <item name="BrandImport" xsi:type="object">Omnik\Core\Console\Brands\ImportBrands</item>
+                <item name="VariantImport" xsi:type="object">Omnik\Core\Console\Variants\ImportVariants</item>
+                <item name="EmbalagemImport" xsi:type="object">Omnik\Core\Console\Variants\ImportVariantEmbalagem</item>
+                <item name="VariantColorImport" xsi:type="object">Omnik\Core\Console\Variants\ImportVariantColor</item>
+                <item name="VariantTamanhoImport" xsi:type="object">Omnik\Core\Console\Variants\ImportVariantTamanho</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <type name="Omnik\Integration\Logger\Logger">
+        <arguments>
+            <argument name="name" xsi:type="string">import_integration_log</argument>
+            <argument name="handlers"  xsi:type="array">
+                <item name="system" xsi:type="object">Omnik\Core\Logger\Handler</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <preference for="Omnik\Core\Api\NotifyInterface" type="Omnik\Core\Model\Notify" />
+    <preference for="Omnik\Core\Api\Data\NotifyOmnikInterface" type="Omnik\Core\Model\NotifyOmnik" />
+    <preference for="Omnik\Core\Api\NotifyOmnikRepositoryInterface" type="Omnik\Core\Model\NotifyOmnikRepository" />
+    <preference for="Omnik\Core\Api\Data\NotifyOmnikSearchResultsInterface" type="Omnik\Core\Model\NotifyOmnikSearchResults" />
+    <preference for="Omnik\Core\Api\Data\NotifyOmnikDataInterface" type="Omnik\Core\Model\Data\NotifyOmnikData" />
+
+    <preference for="Omnik\Core\Api\NotifyTesteInterface" type="Omnik\Core\Model\NotifyTeste" />
+
+    <type name="Omnik\Core\Logger\Handler">
+        <arguments>
+            <argument name="filesystem" xsi:type="object">Magento\Framework\Filesystem\Driver\File</argument>
+        </arguments>
+    </type>
+    <type name="Omnik\Core\Logger\Logger">
+        <arguments>
+            <argument name="name" xsi:type="string">notification_omnik_log</argument>
+            <argument name="handlers"  xsi:type="array">
+                <item name="system" xsi:type="object">Omnik\Core\Logger\Handler</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- HANDLER | ORDERS  -->
+    <type name="Omnik\Core\Model\Cron\SaveHandler\Handler\Orders\HandlerPool">
+        <arguments>
+            <argument name="handlers" xsi:type="array">
+                <item name="statusOrder" xsi:type="object">Omnik\Core\Model\Cron\SaveHandler\Orders\StatusOrder</item>
+                <!-- <item name="invoice" xsi:type="object">Omnik\Core\Model\Cron\SaveHandler\Orders\Invoice</item> -->
+                <item name="ship" xsi:type="object">Omnik\Core\Model\Cron\SaveHandler\Orders\Ship</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- HANDLER | PRODUCTS  -->
+    <type name="Omnik\Core\Model\Cron\SaveHandler\Handler\Product\HandlerPool">
+        <arguments>
+            <argument name="handlers" xsi:type="array">
+                <item name="insertBrand" xsi:type="object">Omnik\Core\Model\Cron\SaveHandler\Product\InsertBrand</item>
+                <item name="insertEmbalagem" xsi:type="object">Omnik\Core\Model\Cron\SaveHandler\Product\InsertEmbalagem</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- HANDLER | PRODUCTS UPDATE  -->
+    <type name="Omnik\Core\Model\Cron\SaveHandler\Handler\ProductUpdate\HandlerPool">
+        <arguments>
+            <argument name="handlers" xsi:type="array">
+                <item name="updateProduct" xsi:type="object">Omnik\Core\Model\Cron\SaveHandler\Product\UpdateProduct</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- HANDLER | SELLER  -->
+    <type name="Omnik\Core\Model\Cron\SaveHandler\Handler\Seller\HandlerPool">
+        <arguments>
+            <argument name="handlers" xsi:type="array">
+                <item name="insertSeller" xsi:type="object">Omnik\Core\Model\Cron\SaveHandler\Seller\InsertSeller</item>
+                <item name="updateSeller" xsi:type="object">Omnik\Core\Model\Cron\SaveHandler\Seller\UpdateSeller</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- HANDLER | STOCK  -->
+    <type name="Omnik\Core\Model\Cron\SaveHandler\Handler\Stock\HandlerPool">
+        <arguments>
+            <argument name="handlers" xsi:type="array">
+                <item name="updateStockProduct" xsi:type="object">Omnik\Core\Model\Cron\SaveHandler\Stock\UpdateStockProduct</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- HANDLER | PRICE  -->
+    <type name="Omnik\Core\Model\Cron\SaveHandler\Handler\Price\HandlerPool">
+        <arguments>
+            <argument name="handlers" xsi:type="array">
+                <item name="updatePriceProduct" xsi:type="object">Omnik\Core\Model\Cron\SaveHandler\Price\UpdatePriceProduct</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
+        <arguments>
+            <argument name="collections" xsi:type="array">
+                <item name="ui_listing_data_source" xsi:type="string">Omnik\Core\Model\ResourceModel\NotifyOmnik\Grid\Collection</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <virtualType name="Omnik\Core\Model\ResourceModel\NotifyOmnik\Grid\Collection"
+                 type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
+        <arguments>
+            <argument name="mainTable" xsi:type="string">omnik_notify_omnik</argument>
+            <argument name="resourceModel" xsi:type="string">Omnik\Core\Model\ResourceModel\NotifyOmnik</argument>
+        </arguments>
+    </virtualType>
+
+
+
+
+
+    <!-- QUEUE PRICE UPDATE -->
+    <preference for="Omnik\Core\Api\Data\Price\PriceQueueInterface"
+                type="Omnik\Core\Model\Price\PriceQueue"/>
+
+    <!-- QUEUE STOCK UPDATE -->
+    <preference for="Omnik\Core\Api\Data\Stock\StockQueueInterface"
+                type="Omnik\Core\Model\Stock\StockQueue"/>
+
+    <type name="Omnik\Core\Logger\Handler">
+        <arguments>
+            <argument name="filesystem" xsi:type="object">Magento\Framework\Filesystem\Driver\File</argument>
+        </arguments>
+    </type>
+    <type name="Omnik\Core\Logger\Logger">
+        <arguments>
+            <argument name="name" xsi:type="string">rabbitmq_log</argument>
+            <argument name="handlers"  xsi:type="array">
+                <item name="system" xsi:type="object">Omnik\Core\Logger\Handler</item>
+            </argument>
+        </arguments>
+    </type>
+
+
+
+    <preference for="Omnik\Core\Api\Data\SellerInterface" type="Omnik\Core\Model\Seller"/>
+    <preference for="Omnik\Core\Api\SellerRepositoryInterface" type="Omnik\Core\Model\Repositories\SellerRepository"/>
+    <preference for="Omnik\Core\Api\Data\SearchResults\SellerSearchResultsInterface" type="Omnik\Core\Model\SearchResults\SellerSearchResults"/>
+    <preference for="Omnik\Core\Api\ProductSellerInterface" type="Omnik\Core\Model\Seller\ProductSeller"/>
+
+
+
+    <type name="Magento\Catalog\Controller\Adminhtml\Category\Save">
+        <plugin name="catalog_category_save"
+                type="Omnik\Core\Plugin\Category\Admin\Category\Save"
+                disabled="true"/>
+    </type>
+    <preference for="Magento\Catalog\Block\Category\View"
+                type="Omnik\Core\Block\Category\View"/>
+
+    <preference for="Omnik\Core\Api\Data\BrandInterface" type="Omnik\Core\Model\Brand"/>
+    <preference for="Omnik\Core\Api\BrandRepositoryInterface" type="Omnik\Core\Model\Repositories\BrandRepository"/>
+    <preference for="Omnik\Core\Api\Data\SearchResults\BrandSearchResultsInterface" type="Omnik\Core\Model\SearchResults\BrandSearchResults"/>
+
+    <preference for="Magento\ConfigurableProduct\Block\Cart\Item\Renderer\Configurable"
+                type="Omnik\Core\Block\Cart\Item\Renderer\Configurable" />
+
+    <preference for="Omnik\Core\Api\ProductModerationTestInterface"
+                type="Omnik\Core\Model\ProductModerationTest" />
+
+    <preference for="Omnik\Core\Api\Data\NotifyProductModerationDataInterface"
+                type="Omnik\Core\Model\Data\NotifyProductModerationData" />
+
+    <type name="Omnik\Core\Logger\Handler">
+        <arguments>
+            <argument name="filesystem" xsi:type="object">Magento\Framework\Filesystem\Driver\File</argument>
+        </arguments>
+    </type>
+    <type name="Omnik\Core\Logger\Logger">
+        <arguments>
+            <argument name="name" xsi:type="string">product_integration_log</argument>
+            <argument name="handlers"  xsi:type="array">
+                <item name="system" xsi:type="object">Omnik\Core\Logger\Handler</item>
+            </argument>
+        </arguments>
+    </type>
+    <type name="Omnik\Core\Model\Cron\HandlerPool">
+        <arguments>
+            <argument name="handlers" xsi:type="array">
+                <item name="integrateProduct" xsi:type="object">Omnik\Core\Model\Cron\SaveHandler\Integrate</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <preference for="Omnik\Core\Api\Data\VariantInterface" type="Omnik\Core\Model\Variant"/>
+    <preference for="Omnik\Core\Api\VariantRepositoryInterface" type="Omnik\Core\Model\Repositories\VariantRepository"/>
+    <preference for="Omnik\Core\Api\Data\SearchResults\VariantSearchResultsInterface" type="Omnik\Core\Model\SearchResults\VariantSearchResults"/>
+
+    <preference for="Omnik\Core\Api\PricePerSellerInterface" type="Omnik\Core\Model\ProductData\PricePerSeller" />
+    <preference for="Omnik\Core\Api\PriceProductsSectionInterface" type="Omnik\Core\Model\ProductData\PriceProductsSection" />
+    <preference for="Omnik\Core\Api\ValidSelectComboInterface" type="Omnik\Core\Model\ValidSelectCombo" />
+    <preference for="Omnik\Core\Api\ValidSwatchInterface" type="Omnik\Core\Model\ValidSwatch" />
+    <type name="Magento\ConfigurableProduct\Block\Product\View\Type\Configurable">
+        <plugin name="fc_configurable_attributes" type="Omnik\Core\Plugin\Block\Product\View\Type\ConfigurablePlugin" />
+    </type>
+
+    <type name="Magento\Checkout\Block\Checkout\LayoutProcessor">
+        <plugin name="rewrite-street-address"
+                type="Omnik\Core\Plugin\Checkout\LayoutProcessorPlugin"/>
+    </type>
+
+    <preference for="Magento\Checkout\Controller\Cart\Add"
+                type="Omnik\Core\Controller\Cart\Add"/>
+
+    <preference for="Magento\Checkout\Block\Cart\Grid"
+                type="Omnik\Core\Block\Cart\Grid" />
+
+    <preference for="Omnik\Core\Api\RegionRepositoryInterface"
+                type="Omnik\Core\Model\RegionRepository" />
+
+    <preference for="Magento\Elasticsearch\Model\ResourceModel\Fulltext\Collection\SearchResultApplier"
+                type="Omnik\Core\Model\ResourceModel\Fulltext\Collection\SearchResultApplier" />
+    <preference for="Magento\Elasticsearch\Model\ResourceModel\Fulltext\Collection\SearchCriteriaResolver"
+                type="Omnik\Core\Model\ResourceModel\Fulltext\Collection\SearchCriteriaResolver" />
+    <type name="Magento\Catalog\Controller\Category\View">
+        <plugin name="OmnikFixSearchResultPluginMagentoCatalogControllerCategoryViewPlugin"
+                type="Omnik\Core\Plugin\Magento\Catalog\Controller\Category\ViewPlugin"
+                sortOrder="10"
+                disabled="false"  />
+    </type>
+
+    <preference for="Omnik\Core\Api\Data\OmnikFreightRatesInterface"
+                type="Omnik\Core\Model\OmnikFreightRates"/>
+
+    <preference for="Omnik\Core\Api\Data\SearchResults\OmnikFreightRatesResultsInterface"
+                type="Omnik\Core\Model\SearchResults\OmnikFreightRatesSearchResults"/>
+
+    <preference for="Omnik\Core\Api\OmnikFreightRatesRepositoryInterface"
+                type="Omnik\Core\Model\Repositories\OmnikFreightRatesRepository"/>
+
+    <preference for="Magento\Quote\Model\QuoteAddressValidator"
+                type="Omnik\Core\Model\FcQuoteAddressValidator"/>
+
+    <preference for="Magento\Sales\Block\Order\Info" type="Omnik\Core\Block\Order\Info"/>
+    <preference for="Magento\Sales\Block\Order\History" type="Omnik\Core\Block\Order\History"/>
+    <preference for="Magento\Sales\Block\Order\Recent" type="Omnik\Core\Block\Order\Recent"/>
+    <preference for="Magento\Sales\Controller\Order\Reorder" type="Omnik\Core\Controller\Order\Reorder"/>
+
+    <type name="Omnik\Core\Logger\Handler">
+        <arguments>
+            <argument name="filesystem" xsi:type="object">Magento\Framework\Filesystem\Driver\File</argument>
+        </arguments>
+    </type>
+    <type name="Omnik\Core\Logger\Logger">
+        <arguments>
+            <argument name="name" xsi:type="string">parameters_sales_integration_log</argument>
+            <argument name="handlers" xsi:type="array">
+                <item name="system" xsi:type="object">Omnik\Core\Logger\Handler</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <type name="Magento\Sales\Block\Adminhtml\Order\View">
+        <plugin name="button_reintegrate_order_plugin"
+                type="Omnik\Core\Plugin\Sales\Block\Adminhtml\Order\View"/>
+    </type>
+
+    <preference for="Omnik\Core\Api\QuoteHandlerInterface" type="Omnik\Core\Model\QuoteHandler"/>
+
+    <type name="Magento\Quote\Model\QuoteManagement">
+        <plugin name="omnik_splitorder_split_quote" type="Omnik\Core\Plugin\SplitQuote" sortOrder="1"/>
+    </type>
+
+    <virtualType name="Magento\Sales\Model\ResourceModel\Order\Grid" type="Magento\Sales\Model\ResourceModel\Grid">
+        <arguments>
+            <argument name="columns" xsi:type="array">
+                <item name="has_integrated_omnik" xsi:type="string">sales_order.has_integrated_omnik</item>
+            </argument>
+        </arguments>
+    </virtualType>
+
+    <preference for="Omnik\Core\Api\Data\StatusMappingInterface" type="Omnik\Core\Model\StatusMapping"/>
+</config>

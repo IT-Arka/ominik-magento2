@@ -1,0 +1,129 @@
+Omnik,Omnik
+Adobe,Adobe
+"Add Status Mapping","Adicionar mapeamento de status"
+"Starting Import Variant %variant ","Iniciar variante de importação %variant "
+"has been rebuilt successfully in %time","foi reconstruído com sucesso em %time"
+"Integração de produtos novos","Integração de produtos novos"
+"Order already integrated.","Pedido já integrado."
+"Order reintegrated with successfully.","Pedido reintegrado com sucesso."
+"Error trying reintegrate order.","Erro ao tentar reintegrar o pedido."
+"Zipcode not found","Código postal não encontrado"
+"Product attributes not found","Atributos do produto não encontrados"
+"Freight not found","Frete não encontrado"
+Brand,Marca
+"As low as","A partir de"
+NEW,NEW
+APPROVED,APPROVED
+"PARTIALLY RETURNED","PARTIALLY RETURNED"
+"PARTIALLY CANCELED","PARTIALLY CANCELED"
+INVOICED,INVOICED
+SENT,SENT
+DELIVERED,DELIVERED
+CANCELED,CANCELED
+SHIPPING_LABEL,SHIPPING_LABEL
+ERROR_ORDER,ERROR_ORDER
+RECALCULATE_LATE_ORDER_SHIPPING_LABEL,RECALCULATE_LATE_ORDER_SHIPPING_LABEL
+RECEIVING_PERIOD,RECEIVING_PERIOD
+REVERSE_REQUEST,REVERSE_REQUEST
+REVERSE_IN_PROGRESS,REVERSE_IN_PROGRESS
+REVERSE_RECEIVE,REVERSE_RECEIVE
+REVERSE_CANCELED,REVERSE_CANCELED
+REVERSE_CONCLUDED,REVERSE_CONCLUDED
+Staging,Staging
+Production,Production
+Hour,Hour
+Daily,Daily
+Weekly,Weekly
+Monthly,Monthly
+Minute,Minute
+"Type %1 is not an instance of %2","O tipo %1 não é uma instância de %2"
+"The credit memo's total must be positive.","O total da nota de crédito deve ser positivo."
+Closed,Fechado
+"We can't save the cron expression.","Não é possível salvar a expressão cron."
+"Could not save the notify.","Não foi possível salvar a notificação."
+"Could not save the notify","Não foi possível guardar a notificação"
+"Notify Omnik %1 does not exist","Avisar que Omnik %1 não existe"
+"File extension must be only pdf.","A extensão do arquivo deve ser apenas pdf."
+"File extension must be png or jpeg.","A extensão do arquivo deve ser png ou jpeg."
+"Region Id %1 doesnt exists","A região Id %1 não existe"
+"The brand with the %1 ID doesn't exist.","A marca com o ID %1 não existe."
+"The brand with the %1 BRAND_CODE doesn't exist.","A marca com o %1 BRAND_CODE não existe."
+"The Rate with the %1 ID doesn't exist.","A taxa com o ID %1 não existe."
+"The Seller with the %1 ID doesn't exist.","O vendedor com o ID %1 não existe."
+"The Seller with the %1 OMNIK_ID doesn't exist.","O vendedor com o %1 OMNIK_ID não existe."
+"The variant with the %1 ID doesn't exist.","A variante com o ID %1 não existe."
+"Are you sure you want reintegrate order?","Tem certeza de que deseja reintegrar o pedido?"
+"Reintegrate order OMNIK","Reintegrar pedido OMNIK"
+"Not integrated with OMNIK","Não integrado com OMNIK"
+"Integrated with OMNIK","Integrado com OMNIK"
+"Split Order Information","Informações sobre pedidos divididos"
+"Order type","Tipo de pedido"
+"Order Parent Id","Id do pedido pai"
+"Order Has Integrated Omnik","O pedido foi integrado com OMNIK"
+"Print out product's PDF.","Imprimir o PDF do produto."
+"Add to Wish List","Adicionar à lista de desejos"
+"Remove Item","Remover item"
+"Add to Cart","Adicionar ao carrinho"
+Add,Aadicionar
+"In stock","Em estoque"
+"Product Unavailable","Produto indisponível"
+"Tell me when you arrive","Avise-me quando chegar."
+"Learn More","Saiba mais"
+Delete,Deletar
+"Solicitar Orçamento","Solicitar Orçamento"
+"Approx. %1 the unit","Aproximadamente 1% da unidade"
+"% OFF","% OFF"
+"Approx. %1 the un","Approx. %1 the un"
+"Omnik Integration","Integração Omnik"
+General,Geral
+Enable,Ativar
+"Api Mode","Modo Api"
+"Api URL HUB","URL da API HUB"
+"Api URL CATALOG","URL da API CATÁLOGO"
+"Api URL FREIGHT","URL Api FRETE"
+"Api Token","Token Api"
+"Application ID","ID do aplicativo"
+"Tenant Marketplace","Tenant Marketplace"
+"Api Timeout","Api Timeout"
+"Enable Log","Ativar Log"
+"Configuration Cron Webhook Data","Configuração dos dados do Webhook Cron"
+"Configuration Cron Integration Products","Configuração da Integração da Cron de Produtos"
+Frequency,Frequência
+"Start Time","Hora de início"
+"Configuration Cron To Change Order Status","Configuração do Cron para alterar o status do pedido"
+"Configuration Cron Product Attributes","Configuração da Cron de Atributos de Produtos"
+"Configuration Cron Product Update","Configuração de Cron de atualização de produto"
+"Configuration Cron Seller","Configuração Cron de Vendedor"
+"Configuration Cron Update Stock Product","Configuração Cron de atualização estoque produto"
+"Configuration Cron Update Price Product","Configuração Cron Atualização de preço de produto"
+"Grid da Fila de Integração de Produtos Novos OMNIK","Grid da Fila de Integração de Produtos Novos OMNIK"
+Configurations,Configurações
+"Habilitar Grid","Habilitar Grid"
+"Omnik Adobe Status","Omnik Adobe Status"
+"Status Mapping Configuration","Configuração do mapeamento de status"
+"Enable Status Mapping","Habilitar mapeamento de status"
+"Enable or disable status mapping functionality","Ativar ou desativar a funcionalidade de mapeamento de status"
+"Status Mapping","Mapeamento de status"
+"Map Omnik status to Adobe Commerce order status","Mapeie o status Omnik para o status do pedido do Adobe Commerce"
+"Caches Customizados","Caches personalizados"
+"Cache Página de Categoria","Cache Página de Categoria"
+"Enable Free Shipping Progress Bar","Ativar barra de progresso do frete grátis"
+"Free Shipping Progress Bar Minimum Order Total","Barra de progresso do frete grátis Total mínimo do pedido"
+"Omnik Shipping","Omnik Shipping"
+Enabled,Ativado
+"Method Name","Nome do método"
+"Fixed Price","Preço fixo"
+"Delivery Days","Dias de entrega"
+"Sort Order","Ordem de classificação"
+Title,Título
+"Ship to Applicable Countries","Enviar para países aplicáveis"
+"Ship to Specific Countries","Enviar para países específicos"
+"Show Method if Not Applicable","Mostrar método se não for aplicável"
+"Has Integrated Omnik","Foi integrado em Omnik"
+ID,ID
+Vendedor,Vendedor
+"Tipo Operação","Tipo Operação"
+"ID OMNIK","ID OMNIK"
+Status,Status
+"Data Criação","Data Criação"
+ERRO,ERRO

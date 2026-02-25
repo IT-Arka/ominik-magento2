@@ -1,0 +1,18 @@
+<?xml version="1.0" ?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework-message-queue:etc/topology.xsd">
+    <!-- EXCHANGE PRICE UPDATE -->
+    <exchange name="price.update" type="topic" connection="amqp">
+        <binding id="topicPriceUpdate"
+                 topic="price.update"
+                 destinationType="queue"
+                 destination="price.update.queue"/>
+    </exchange>
+
+    <!-- EXCHANGE STOCK UPDATE -->
+    <exchange name="stock.update" type="topic" connection="amqp">
+        <binding id="topicStockUpdate"
+                 topic="stock.update"
+                 destinationType="queue"
+                 destination="stock.update.queue"/>
+    </exchange>
+</config>

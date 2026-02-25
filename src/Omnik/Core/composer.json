@@ -1,0 +1,20 @@
+{
+    "name": "omnik/module-core",
+    "version": "1.0.2",
+    "type": "magento2-module",
+    "require": {
+        "php": "~8.1.0||~8.2.0||~8.3.0",
+        "magento/framework": "^103.0.4"
+    },
+    "license": [
+        "Proprietary"
+    ],
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "Omnik\\Core\\": ""
+        }
+    }
+}

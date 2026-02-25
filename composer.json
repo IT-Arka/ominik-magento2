@@ -1,0 +1,21 @@
+{
+    "name": "arkashop/ominik-magento2",
+    "description": "Omnik Magento 2 Modules - Synced by ArkaShop",
+    "type": "metapackage",
+    "version": "1.0.0",
+    "license": "proprietary",
+    "require": {
+        "magento/framework": "^103.0.4"
+    },
+    "replace": {
+        "omnik/module-core": "1.0.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Omnik\\Core\\": "src/Omnik/Core/"
+        },
+        "files": [
+            "src/Omnik/Core/registration.php"
+        ]
+    }
+}

@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Cron:etc/crontab.xsd">
+    <group id="default">
+        <job name="create_omnik_status_order" instance="Omnik\Core\Cron\Orders\CronChangeOrderStatus" method="execute">
+            <schedule>*/2 * * * *</schedule>
+        </job>
+    </group>
+    <group id="omnik_notify">
+        <job name="create_integration_product_attributes" instance="Omnik\Core\Cron\Product\CronProductAttribute" method="execute">
+            <schedule>*/5 * * * *</schedule>
+        </job>
+
+        <job name="product_update_attributes" instance="Omnik\Core\Cron\Product\CronProductUpdate" method="execute">
+            <schedule>*/5 * * * *</schedule>
+        </job>
+
+        <job name="create_integration_seller" instance="Omnik\Core\Cron\Seller\CronSeller" method="execute">
+            <schedule>*/5 * * * *</schedule>
+        </job>
+
+        <job name="update_stock_product" instance="Omnik\Core\Cron\Stock\CronUpdateStockProduct" method="execute">
+            <schedule>*/5 * * * *</schedule>
+        </job>
+
+        <job name="update_price_product" instance="Omnik\Core\Cron\Price\CronUpdatePriceProduct" method="execute">
+            <schedule>*/5 * * * *</schedule>
+        </job>
+    </group>
+    <group id="omnik_integration_product">
+        <job name="create_integration_product" instance="Omnik\Core\Cron\ProductCron" method="execute">
+            <schedule>*/1 * * * *</schedule>
+        </job>
+        <job name="create_integration_product2" instance="Omnik\Core\Cron\ProductCron" method="execute">
+            <schedule>*/1 * * * *</schedule>
+        </job>
+        <job name="create_integration_product3" instance="Omnik\Core\Cron\ProductCron" method="execute">
+            <schedule>*/1 * * * *</schedule>
+        </job>
+        <job name="create_integration_product4" instance="Omnik\Core\Cron\ProductCron" method="execute">
+            <schedule>*/1 * * * *</schedule>
+        </job>
+        <job name="create_integration_product5" instance="Omnik\Core\Cron\ProductCron" method="execute">
+            <schedule>*/1 * * * *</schedule>
+        </job>
+    </group>
+</config>

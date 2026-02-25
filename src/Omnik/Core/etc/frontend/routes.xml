@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:App/etc/routes.xsd">
+    <router id="standard">
+        <route id="fc_recommendations" frontName="fc_recommendations">
+            <module name="Omnik_Core" />
+        </route>
+        <route id="product_file" frontName="product_file">
+            <module name="Omnik_Core" />
+        </route>
+        <route id="fc_quote" frontName="fc_quote">
+            <module name="Omnik_Quote" />
+        </route>
+    </router>
+</config>

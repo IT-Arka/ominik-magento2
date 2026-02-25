@@ -1,0 +1,213 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <tab id="omnik" translate="label" sortOrder="1">
+            <label>Omnik</label>
+        </tab>
+        <section id="omnik_integration" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="1">
+            <label>Omnik Integration</label>
+            <tab>omnik</tab>
+            <resource>Omnik_Integration::configuration</resource>
+            <group id="general" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="1">
+                <label>General</label>
+                <field id="enable" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="1">
+                    <label>Enable</label>
+                    <config_path>omnik_integration/general/enable</config_path>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="mode" translate="label" type="select" sortOrder="20" showInDefault="1" showInWebsite="0" showInStore="1">
+                    <label>Api Mode</label>
+                    <config_path>omnik_integration/general/mode</config_path>
+                    <source_model>Omnik\Core\Model\Config\Source\Apimode</source_model>
+                </field>
+                <field id="url" translate="label" type="text" sortOrder="30" showInDefault="1" showInWebsite="0" showInStore="1">
+                    <label>Api URL HUB</label>
+                    <config_path>omnik_integration/general/url</config_path>
+                </field>
+                <field id="url_catalog" translate="label" type="text" sortOrder="40" showInDefault="1" showInWebsite="0" showInStore="1">
+                    <label>Api URL CATALOG</label>
+                    <config_path>omnik_integration/general/url_catalog</config_path>
+                </field>
+                <field id="url_freight" translate="label" type="text" sortOrder="41" showInDefault="1" showInWebsite="0" showInStore="1">
+                    <label>Api URL FREIGHT</label>
+                    <config_path>omnik_integration/general/url_freight</config_path>
+                </field>
+                <field id="token" translate="label" type="text" sortOrder="50" showInDefault="1" showInWebsite="0" showInStore="1">
+                    <label>Api Token</label>
+                    <config_path>omnik_integration/general/token</config_path>
+                </field>
+                <field id="application_id" translate="label" type="text" sortOrder="60" showInDefault="1" showInWebsite="0" showInStore="1">
+                    <label>Application ID</label>
+                    <config_path>omnik_integration/general/application_id</config_path>
+                </field>
+                <field id="tenant_marketplace" translate="label" type="text" sortOrder="70" showInDefault="1" showInWebsite="0" showInStore="1">
+                    <label>Tenant Marketplace</label>
+                    <config_path>omnik_integration/general/tenant_marketplace</config_path>
+                </field>
+                <field id="timeout" translate="label" type="text" sortOrder="80" showInDefault="1" showInWebsite="0" showInStore="1">
+                    <label>Api Timeout</label>
+                    <config_path>omnik_integration/general/timeout</config_path>
+                </field>
+                <field id="log_requests" translate="label" type="select" sortOrder="90" showInDefault="1" showInWebsite="0" showInStore="1">
+                    <label>Enable Log</label>
+                    <config_path>omnik_integration/general/log_requests</config_path>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+            </group>
+        </section>
+
+        <section id="omnik_grid_product_integration" translate="label" type="text" sortOrder="1" showInDefault="1"
+                 showInWebsite="1" showInStore="1">
+            <class>separator-top</class>
+            <label>Grid da Fila de Integração de Produtos Novos OMNIK</label>
+            <tab>omnik</tab>
+            <resource>Omnik_NotifyOmnik::config_integration_data_grid_product</resource>
+
+            <group id="grid" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="0"
+                   showInStore="1">
+                <label>Configurations</label>
+
+                <field id="enable" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="0"
+                       showInStore="1">
+                    <label>Habilitar Grid</label>
+                    <comment>Ao habilitar o grid, será exibido um novo menu para acompanhamento das filas de integração
+                        de produtos novos com a OMNIK
+                    </comment>
+                    <config_path>omnik_grid_product_integration/grid/enable</config_path>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+            </group>
+        </section>
+
+        <section id="omnik_adobe_status" translate="label" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+            <label>Omnik Adobe Status</label>
+            <tab>omnik</tab>
+            <resource>Omnik_Integration::configuration</resource>
+            <group id="status_mapping" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Status Mapping Configuration</label>
+                <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Enable Status Mapping</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <config_path>omnik_adobe_status_mapping/status/enable</config_path>
+                    <comment>Enable or disable status mapping functionality</comment>
+                </field>
+
+                <field id="mapping_table" translate="label comment" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Status Mapping</label>
+                    <frontend_model>Omnik\Core\Block\Adminhtml\System\Config\Form\Field\StatusMapping</frontend_model>
+                    <backend_model>Omnik\Core\Model\Config\Backend\StatusMapping</backend_model>
+                    <comment>Map Omnik status to Adobe Commerce order status</comment>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+            </group>
+
+        </section>
+
+        <section id="omnik_cache" translate="label" type="text" sortOrder="40" showInDefault="1" showInWebsite="0" showInStore="1">
+            <label>Caches Customizados</label>
+            <tab>omnik</tab>
+            <resource>Omnik_Category::configuration</resource>
+            <group id="category_page" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="0"
+                   showInStore="1">
+                <label>Cache Página de Categoria</label>
+
+                <field id="enable" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="1">
+                    <label>Enable</label>
+                    <comment>Habilitar cache do grid de produtos da página de categoria, criado para teste do LiveSearch</comment>
+                    <config_path>omnik_cache/category_page/enable</config_path>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+
+            </group>
+        </section>
+
+        <section id="checkout">
+            <group id="cart">
+                <field id="freeshipping_progress_enable" sortOrder="110" translate="label" showInDefault="1" showInWebsite="1" showInStore="1" type="select">
+                    <label>Enable Free Shipping Progress Bar</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>Display a free shipping progress bar in cart to promote higher order values.</comment>
+                </field>
+                <field id="freeshipping_progress_min_total" sortOrder="140" translate="label" showInDefault="1" showInWebsite="1" showInStore="1" type="text">
+                    <label>Free Shipping Progress Bar Minimum Order Total</label>
+                    <comment>Enter the value an order has to be equal to or over to be eligible for free shipping.</comment>
+                    <depends>
+                        <field id="freeshipping_progress_enable">1</field>
+                    </depends>
+                </field>
+            </group>
+        </section>
+
+        <section id="carriers" translate="label" type="text" sortOrder="320" showInDefault="1" showInWebsite="1"
+                 showInStore="1">
+            <group id="omnik" translate="label" type="text" sortOrder="2" showInDefault="1" showInWebsite="1"
+                   showInStore="1">
+                <label>Omnik Shipping</label>
+                <field id="active" translate="label" type="select" sortOrder="1" showInDefault="1" showInWebsite="1"
+                       showInStore="0">
+                    <label>Enabled</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="name" translate="label" type="text" sortOrder="3" showInDefault="1" showInWebsite="1"
+                       showInStore="1">
+                    <label>Method Name</label>
+                </field>
+                <field id="price" translate="label" type="text" sortOrder="5" showInDefault="1" showInWebsite="1"
+                       showInStore="0">
+                    <label>Fixed Price</label>
+                    <validate>validate-number validate-zero-or-greater</validate>
+                </field>
+                <field id="delivery_days" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="1"
+                       showInStore="0">
+                    <label>Delivery Days</label>
+                    <validate>validate-number validate-zero-or-greater</validate>
+                </field>
+                <field id="sort_order" translate="label" type="text" sortOrder="100" showInDefault="1" showInWebsite="1"
+                       showInStore="0">
+                    <label>Sort Order</label>
+                </field>
+                <field id="title" translate="label" type="text" sortOrder="2" showInDefault="1" showInWebsite="1"
+                       showInStore="1">
+                    <label>Title</label>
+                </field>
+                <field id="sallowspecific" translate="label" type="select" sortOrder="90" showInDefault="1"
+                       showInWebsite="1" showInStore="0">
+                    <label>Ship to Applicable Countries</label>
+                    <frontend_class>shipping-applicable-country</frontend_class>
+                    <source_model>Magento\Shipping\Model\Config\Source\Allspecificcountries</source_model>
+                </field>
+                <field id="specificcountry" translate="label" type="multiselect" sortOrder="91" showInDefault="1"
+                       showInWebsite="1" showInStore="0">
+                    <label>Ship to Specific Countries</label>
+                    <source_model>Magento\Directory\Model\Config\Source\Country</source_model>
+                    <can_be_empty>1</can_be_empty>
+                </field>
+                <field id="showmethod" translate="label" type="select" sortOrder="92" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Show Method if Not Applicable</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+            </group>
+        </section>
+
+        <section id="omnik_core" translate="label" type="text" sortOrder="340" showInDefault="1"
+                 showInWebsite="1" showInStore="1">
+            <label>Omnik Core Settings</label>
+            <tab>omnik</tab>
+            <resource>Omnik_Integration::configuration</resource>
+            <group id="general" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="0"
+                   showInStore="1">
+                <label>Configurations</label>
+                <field id="attempts" translate="label comment" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Attempts</label>
+                    <comment>Number of attempts (integer value)</comment>
+                    <validate>validate-digits validate-zero-or-greater</validate>
+                    <backend_model>Omnik\Core\Model\Config\Backend\Attempts</backend_model>
+                    <config_path>omnik_core/general/attampts</config_path>
+                </field>
+            </group>
+        </section>
+    </system>
+</config>

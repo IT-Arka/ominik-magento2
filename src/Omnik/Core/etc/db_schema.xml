@@ -1,0 +1,173 @@
+<?xml version="1.0"?>
+<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+    <table name="omnik_notify_omnik" resource="default" engine="innodb" comment="Omnik Notify Omnik">
+        <column xsi:type="int" name="entity_id" padding="11" unsigned="true" nullable="false" identity="true" comment="Entity Id" />
+        <column xsi:type="varchar" name="seller" length="14" nullable="true" comment="CNPJ" />
+        <column xsi:type="varchar" name="event" length="250" nullable="true" comment="Description Event" />
+        <column xsi:type="varchar" name="resource_type" length="250" nullable="true" comment="Resource Type" />
+        <column xsi:type="varchar" name="resource_id" length="250" nullable="true" comment="Resource Id" />
+        <column xsi:type="varchar" name="resource_uri" length="250" nullable="true" comment="Resource Uri" />
+        <column xsi:type="varchar" name="resource_market_place_id" length="250" nullable="true" comment="Resource Market Place Id" />
+        <column xsi:type="varchar" name="resource_market_place_uri" length="250" nullable="true" comment="Resource Market Place Uri" />
+        <column xsi:type="int" name="status" padding="11" unsigned="true" nullable="false" default="0" comment="Status" />
+        <column xsi:type="timestamp" name="date" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Date Omnik" />
+        <column xsi:type="smallint" name="store_id" unsigned="true" nullable="false" default="1" comment="Store ID"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP"
+                comment="Created At" />
+        <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP"
+                comment="Updated At" />
+        <column xsi:type="float" name="from_price" nullable="true" scale="2" precision="12" comment="From price product" />
+        <column xsi:type="float" name="price" nullable="true" scale="2" precision="12" comment="Price product"/>
+        <column xsi:type="int" name="stock" padding="11" unsigned="true" nullable="true" comment="Qty stock" />
+        <column xsi:type="text" name="error_body" nullable="false" comment="Error Body"/>
+        <column xsi:type="smallint" name="attempts" unsigned="false" nullable="true" default="0" comment="Attempts"/>
+
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="entity_id" />
+        </constraint>
+
+    </table>
+
+    <table name="omnik_seller" resource="default" engine="innodb" comment="Omnik Seller">
+        <column xsi:type="int" name="entity_id" padding="11" unsigned="true" nullable="false" identity="true" comment="Entity Id" />
+        <column xsi:type="varchar" name="omnik_id" length="25" nullable="false" comment="Omnik Seller Id" />
+        <column xsi:type="smallint" name="active" unsigned="false" nullable="false" identity="false" default="0" comment="Active"/>
+        <column xsi:type="varchar" name="hub_session_id" length="250" nullable="true" comment="Hub Session Id" />
+        <column xsi:type="varchar" name="company_name" length="250" nullable="true" comment="Company Name" />
+        <column xsi:type="varchar" name="fantasy_name" length="250" nullable="true" comment="Fantasy Name" />
+        <column xsi:type="varchar" name="cnae" length="250" nullable="true" comment="CNAE" />
+        <column xsi:type="varchar" name="state_registration" length="250" nullable="true" comment="State Registration" />
+        <column xsi:type="varchar" name="municipal_registration" length="250" nullable="true" comment="Municipal Registration" />
+        <column xsi:type="varchar" name="tax_regime" length="250" nullable="true" comment="Tax Regime" />
+        <column xsi:type="varchar" name="date_accession_national_simple" length="250" nullable="true" comment="Date Accession National Simple" />
+        <column xsi:type="varchar" name="holding" length="250" nullable="true" comment="Holding" />
+        <column xsi:type="varchar" name="matrix" length="250" nullable="true" comment="Matrix" />
+        <column xsi:type="varchar" name="branch" length="250" nullable="true" comment="Branch" />
+        <column xsi:type="blob" name="zipcode_range" nullable="true" comment="Zipcode Range" />
+        <column xsi:type="blob" name="distributor_freight" nullable="true" comment="Distributor Freight" />
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP"
+                comment="Created At" />
+        <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP"
+                comment="Updated At" />
+        <column xsi:type="smallint" name="store_id" unsigned="true" nullable="false" default="1" comment="Store ID"/>
+
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="entity_id" />
+        </constraint>
+        <constraint xsi:type="unique" referenceId="OMNIK_SELLER_OMNIK_ID">
+            <column name="omnik_id"/>
+        </constraint>
+    </table>
+
+    <table name="omnik_brand" resource="default" engine="innodb" comment="Omnik Brand">
+        <column xsi:type="int" name="entity_id" padding="11" unsigned="true" nullable="false" identity="true" comment="Entity Id"/>
+        <column xsi:type="varchar" name="tenant" length="14" nullable="false" comment="Seller/HUB/Marketplace Identifier"/>
+        <column xsi:type="varchar" name="operator" length="14" nullable="false" comment="HUB/Marketplace Identifier"/>
+        <column xsi:type="varchar" name="brand_id" length="50" nullable="false" comment="Brand OmniK ID"/>
+        <column xsi:type="varchar" name="brand_code" length="50" nullable="false" comment="Brand code"/>
+        <column xsi:type="varchar" name="brand_name" length="100" nullable="false" comment="Brand name"/>
+        <column xsi:type="timestamp" name="create_date" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Create date Omnik"/>
+        <column xsi:type="timestamp" name="last_update" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Last update Omnik"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Created At"/>
+        <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" comment="Updated At"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="entity_id"/>
+        </constraint>
+        <constraint xsi:type="unique" referenceId="OMNIK_BRAND_CODE">
+            <column name="brand_code"/>
+        </constraint>
+    </table>
+
+    <table name="omnik_product_variant" resource="default" engine="innodb" comment="Omnik Product Variant">
+        <column xsi:type="int" name="entity_id" padding="11" unsigned="true" nullable="false" identity="true" comment="Entity Id"/>
+        <column xsi:type="varchar" name="tenant" length="14" nullable="false" comment="Seller/HUB/Marketplace Identifier"/>
+        <column xsi:type="varchar" name="operator" length="14" nullable="false" comment="HUB/Marketplace Identifier"/>
+        <column xsi:type="varchar" name="variant" length="50" nullable="false" comment="Variant OmniK"/>
+        <column xsi:type="varchar" name="variant_id" length="50" nullable="false" comment="Variant OmniK ID"/>
+        <column xsi:type="varchar" name="variant_code" length="50" nullable="false" comment="Variant code"/>
+        <column xsi:type="varchar" name="variant_name" length="100" nullable="false" comment="Variant name"/>
+        <column xsi:type="text" name="variant_option" nullable="false" comment="Variant option"/>
+        <column xsi:type="timestamp" name="create_date" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Create date Omnik"/>
+        <column xsi:type="timestamp" name="last_update" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Last update Omnik"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Created At"/>
+        <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" comment="Updated At"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="entity_id"/>
+        </constraint>
+        <constraint xsi:type="unique" referenceId="OMNIK_PRODUCT_VARIANT_CODE">
+            <column name="variant_code"/>
+        </constraint>
+    </table>
+
+
+    <table name="omnik_omnik_freight_rates" resource="default" engine="innodb" comment="Omnik Omnik Freight Rates">
+        <column xsi:type="int" name="entity_id" padding="11" unsigned="true" nullable="false" identity="true"
+                comment="Entity ID"/>
+        <column xsi:type="int" name="quote_id" padding="11" unsigned="true" nullable="false" default="0"
+                comment="Quote ID"/>
+        <column xsi:type="varchar" name="delivery_method_id" length="50" nullable="true"
+                comment="DeliveryMethodId Omnik"/>
+        <column xsi:type="varchar" name="seller_tenant" length="50" nullable="true"
+                comment="Seller Tenant"/>
+        <column xsi:type="text" name="body" nullable="false" comment="Delivery response body"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP"
+                comment="Created At"/>
+
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="entity_id"/>
+        </constraint>
+
+    </table>
+
+    <table name="sales_order">
+        <column xsi:type="varchar" name="split_order_type" nullable="true" length="32" comment="Status"/>
+        <column xsi:type="int" name="split_order_parent_id" unsigned="true" nullable="true" identity="false" comment="Parent Splited Order ID"/>
+        <column xsi:type="int" name="has_integrated_omnik" unsigned="true" nullable="false" default="0" comment="Has Integrated Omnik" />
+    </table>
+    <table name="quote">
+        <column xsi:type="varchar" name="split_order_type" nullable="true" length="32" comment="Status"/>
+        <column xsi:type="int" name="split_order_parent_id" unsigned="true" nullable="true" identity="false" comment="Parent Splited Order ID"/>
+    </table>
+    <table name="sales_order_grid">
+        <column xsi:type="int" name="has_integrated_omnik" unsigned="true" nullable="false" default="0" comment="Has Integrated Omnik" />
+    </table>
+
+    <table name="omnik_core_status_mapping" resource="default" engine="innodb" comment="Omnik Core Status Mapping Table">
+        <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true" comment="Entity ID"/>
+        <column xsi:type="varchar" name="omnik_status" nullable="false" length="255" comment="Omnik Status"/>
+        <column xsi:type="varchar" name="adobe_status" nullable="false" length="255" comment="Adobe Commerce Order Status"/>
+        <column xsi:type="boolean" name="is_active" nullable="false" default="1" comment="Is Active"/>
+        <column xsi:type="timestamp" name="created_at" nullable="false" default="CURRENT_TIMESTAMP" comment="Created At"/>
+        <column xsi:type="timestamp" name="updated_at" nullable="false" default="CURRENT_TIMESTAMP" on_update="true" comment="Updated At"/>
+        
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="entity_id"/>
+        </constraint>
+        
+        <constraint xsi:type="unique" referenceId="OMNIK_CORE_STATUS_MAPPING_OMNIK_STATUS_ADOBE_STATUS">
+            <column name="omnik_status"/>
+            <column name="adobe_status"/>
+        </constraint>
+        
+        <index referenceId="OMNIK_CORE_STATUS_MAPPING_OMNIK_STATUS" indexType="btree">
+            <column name="omnik_status"/>
+        </index>
+        
+        <index referenceId="OMNIK_CORE_STATUS_MAPPING_ADOBE_STATUS" indexType="btree">
+            <column name="adobe_status"/>
+        </index>
+        
+        <index referenceId="OMNIK_CORE_STATUS_MAPPING_IS_ACTIVE" indexType="btree">
+            <column name="is_active"/>
+        </index>
+        
+        <index referenceId="OMNIK_CORE_STATUS_MAPPING_CREATED_AT" indexType="btree">
+            <column name="created_at"/>
+        </index>
+        
+        <index referenceId="OMNIK_CORE_STATUS_MAPPING_UPDATED_AT" indexType="btree">
+            <column name="updated_at"/>
+        </index>
+    </table>
+
+</schema>
