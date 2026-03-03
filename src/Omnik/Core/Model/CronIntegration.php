@@ -45,9 +45,9 @@ class CronIntegration extends Value
      * @param ScopeConfigInterface $config
      * @param TypeListInterface $cacheTypeList
      * @param ValueFactory $configValueFactory
+     * @param Http $httprequest
      * @param AbstractResource|null $resource
      * @param AbstractDb|null $resourceCollection
-     * @param Http $httprequest
      * @param string $runModelPath
      * @param array $data
      */
@@ -57,9 +57,9 @@ class CronIntegration extends Value
         \Magento\Framework\App\Config\ScopeConfigInterface $config,
         \Magento\Framework\App\Cache\TypeListInterface $cacheTypeList,
         ValueFactory $configValueFactory,
+        Http $httprequest,
         ?\Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
         ?\Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
-        Http $httprequest,
         $runModelPath = '',
         array $data = []
     ) {

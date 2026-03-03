@@ -64,11 +64,11 @@ interface QuoteHandlerInterface
 
     /**
      * @param Quote $split
-     * @param PaymentInterface $payment
      * @param string $paymentMethod
+     * @param PaymentInterface $payment
      * @return QuoteHandlerInterface
      */
-    public function setPaymentMethod(Quote $split, PaymentInterface $payment, string $paymentMethod): QuoteHandlerInterface;
+    public function setPaymentMethod(Quote $split, string $paymentMethod, PaymentInterface $payment): QuoteHandlerInterface;
 
     /**
      * @param Quote $split

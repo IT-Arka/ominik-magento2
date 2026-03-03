@@ -110,7 +110,7 @@ class QuoteHandler implements QuoteHandlerInterface
     public function populateQuote(array $quotes, Quote $split, array $items, array $addresses, ?PaymentInterface $payment = null): QuoteHandlerInterface
     {
         $this->recollectTotal($quotes, $items, $split, $addresses);
-        $this->setPaymentMethod($split, $payment, $addresses['payment']);
+        $this->setPaymentMethod($split, $addresses['payment'], $payment);
 
         return $this;
     }
@@ -178,25 +178,6 @@ class QuoteHandler implements QuoteHandlerInterface
 
     /**
      * @param Quote $split
-     * @param PaymentInterface|null $payment
-     * @param string $paymentMethod
-     * @return QuoteHandlerInterface
-     * @throws \Magento\Framework\Exception\LocalizedException
-     */
-    public function setPaymentMethod(Quote $split, ?PaymentInterface $payment = null, string $paymentMethod): QuoteHandlerInterface
-    {
-        $split->getPayment()->setMethod($paymentMethod);
-
-        if (!is_null($payment)) {
-            $split->getPayment()->setQuote($split);
-            $data = $payment->getData();
-            $split->getPayment()->importData($data);
-        }
-        return $this;
-    }
-
-    /**
-     * @param Quote $split
      * @param Order $order
      * @param array $orderIds
      * @return QuoteHandlerInterface
@@ -210,6 +191,25 @@ class QuoteHandler implements QuoteHandlerInterface
         $this->checkoutSession->setLastOrderStatus($order->getStatus());
         $this->checkoutSession->setOrderIds($orderIds);
 
+        return $this;
+    }
+
+    /**
+     * @param Quote $split
+     * @param string $paymentMethod
+     * @param PaymentInterface|null $payment
+     * @return QuoteHandlerInterface
+     * @throws \Magento\Framework\Exception\LocalizedException
+     */
+    public function setPaymentMethod(Quote $split, string $paymentMethod, ?PaymentInterface $payment = null): QuoteHandlerInterface
+    {
+        $split->getPayment()->setMethod($paymentMethod);
+
+        if (!is_null($payment)) {
+            $split->getPayment()->setQuote($split);
+            $data = $payment->getData();
+            $split->getPayment()->importData($data);
+        }
         return $this;
     }
 }
