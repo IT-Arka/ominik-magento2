@@ -53,7 +53,7 @@ class NotifyProductModerationData implements NotifyProductModerationDataInterfac
      * @param string|null $errorBody
      * @return void
      */
-    public function changeStatusNotify(int $id, int $status, string $errorBody = null): void
+    public function changeStatusNotify(int $id, int $status, ?string $errorBody = null): void
     {
         $notifyOmnik = $this->notifyOmnikRepository->getById($id);
         $notifyOmnik->setStatus($status);

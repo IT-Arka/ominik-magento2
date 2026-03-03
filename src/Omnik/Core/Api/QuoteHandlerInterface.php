@@ -42,7 +42,7 @@ interface QuoteHandlerInterface
      * @param PaymentInterface|null $payment
      * @return QuoteHandlerInterface
      */
-    public function populateQuote(array $quotes, Quote $split, array $items, array $addresses, PaymentInterface $payment = null): QuoteHandlerInterface;
+    public function populateQuote(array $quotes, Quote $split, array $items, array $addresses, ?PaymentInterface $payment = null): QuoteHandlerInterface;
 
     /**
      * @param array $quotes

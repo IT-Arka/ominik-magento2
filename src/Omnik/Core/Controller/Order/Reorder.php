@@ -37,8 +37,8 @@ class Reorder extends ReorderCore implements OrderInterface
         OrderLoaderInterface $orderLoader,
         Registry             $registry,
         CheckoutSession      $checkoutSession,
-        ReorderHelper        $reorderHelper = null,
-        SalesReorder         $reorder = null
+        ?ReorderHelper        $reorderHelper = null,
+        ?SalesReorder         $reorder = null
     ) {
         $this->checkoutSession = $checkoutSession;
         parent::__construct($context, $orderLoader, $registry, $reorderHelper, $reorder, $checkoutSession);

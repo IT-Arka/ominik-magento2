@@ -134,7 +134,7 @@ class NotifyOmnikData implements NotifyOmnikDataInterface
      * @param string|null $errorBody
      * @return void
      */
-    public function changeStatusNotify(int $id, $statusId = self::STATUS_INTEGRATED, string $errorBody = null): void
+    public function changeStatusNotify(int $id, $statusId = self::STATUS_INTEGRATED, ?string $errorBody = null): void
     {
         $notifyOmnik = $this->notifyOmnikRepositoryInterface->getById($id);
         $notifyOmnik->setStatus($statusId);

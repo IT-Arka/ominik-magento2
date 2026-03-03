@@ -39,8 +39,8 @@ class Collection extends NotifyCollection implements SearchResultInterface
                                $eventObject,
                                $resourceModel,
                                $model = Document::class,
-        AdapterInterface       $connection = null,
-        AbstractDb             $resource = null
+        ?AdapterInterface       $connection = null,
+        ?AbstractDb             $resource = null
     ) {
         parent::__construct($entityFactory, $logger, $fetchStrategy, $eventManager, $connection, $resource);
         $this->_eventPrefix = $eventPrefix;
@@ -92,7 +92,7 @@ class Collection extends NotifyCollection implements SearchResultInterface
      * @param \Magento\Framework\Api\SearchCriteriaInterface|null $searchCriteria
      * @return $this|Collection
      */
-    public function setSearchCriteria(\Magento\Framework\Api\SearchCriteriaInterface $searchCriteria = null)
+    public function setSearchCriteria(?\Magento\Framework\Api\SearchCriteriaInterface $searchCriteria = null)
     {
         return $this;
     }
@@ -118,7 +118,7 @@ class Collection extends NotifyCollection implements SearchResultInterface
      * @param array|null $items
      * @return $this|Collection
      */
-    public function setItems(array $items = null)
+    public function setItems(?array $items = null)
     {
         return $this;
     }

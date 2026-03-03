@@ -107,7 +107,7 @@ class QuoteHandler implements QuoteHandlerInterface
      * @return QuoteHandlerInterface
      * @throws \Magento\Framework\Exception\LocalizedException
      */
-    public function populateQuote(array $quotes, Quote $split, array $items, array $addresses, PaymentInterface $payment = null): QuoteHandlerInterface
+    public function populateQuote(array $quotes, Quote $split, array $items, array $addresses, ?PaymentInterface $payment = null): QuoteHandlerInterface
     {
         $this->recollectTotal($quotes, $items, $split, $addresses);
         $this->setPaymentMethod($split, $payment, $addresses['payment']);
@@ -183,7 +183,7 @@ class QuoteHandler implements QuoteHandlerInterface
      * @return QuoteHandlerInterface
      * @throws \Magento\Framework\Exception\LocalizedException
      */
-    public function setPaymentMethod(Quote $split, PaymentInterface $payment = null, string $paymentMethod): QuoteHandlerInterface
+    public function setPaymentMethod(Quote $split, ?PaymentInterface $payment = null, string $paymentMethod): QuoteHandlerInterface
     {
         $split->getPayment()->setMethod($paymentMethod);
 
