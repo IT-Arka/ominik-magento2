@@ -9,12 +9,8 @@
     <acl>
         <resources>
             <resource id="Magento_Backend::admin">
-                <resource id="Magento_Backend::stores">
-                    <resource id="Magento_Backend::stores_settings">
-                        <resource id="Magento_Config::config">
-                            <resource id="Omnik_Core::notify" title="Omnik API Access notify" sortOrder="10" />
-                        </resource>
-                    </resource>
+                <resource id="Omnik_Core::omnik" title="Omnik Integration" sortOrder="10">
+                    <resource id="Omnik_Core::notify" title="Omnik API Access notify" sortOrder="10" />
                 </resource>
             </resource>
         </resources>
