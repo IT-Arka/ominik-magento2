@@ -8,6 +8,7 @@ use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Omnik\Core\Api\SellerRepositoryInterface;
 use Omnik\Core\Api\ProductSellerInterface;
+use Omnik\Core\Helper\Config as ConfigHelper;
 use Omnik\Core\Model\Config\Configurable\ProductsOptions;
 
 class ProductSeller implements ProductSellerInterface
@@ -43,12 +44,14 @@ class ProductSeller implements ProductSellerInterface
         ProductRepositoryInterface $productRepositoryInterface,
         SearchCriteriaBuilder      $searchCriteriaBuilder,
         SellerRepositoryInterface  $sellerRepositoryInterface,
-        ProductsOptions            $productsOptions
+        ProductsOptions            $productsOptions,
+        ConfigHelper               $configHelper
     ) {
         $this->productRepositoryInterface = $productRepositoryInterface;
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
         $this->sellerRepositoryInterface = $sellerRepositoryInterface;
         $this->productsOptions = $productsOptions;
+        $this->configHelper = $configHelper;
     }
 
     /**
@@ -74,8 +77,9 @@ class ProductSeller implements ProductSellerInterface
      */
     public function getSellerNameBySku($sku)
     {
-        $product = $this->productRepositoryInterface->get($sku);
-        $sellerCode = (int)$product->getCustomAttribute('variant_seller')->getValue();
+        $attrCode   = $this->configHelper->getAttrVariantSeller();
+        $product    = $this->productRepositoryInterface->get($sku);
+        $sellerCode = (int)($product->getCustomAttribute($attrCode)?->getValue() ?? 0);
 
         return $this->productsOptions->getSellerFantasy($sellerCode);
     }

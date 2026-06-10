@@ -65,10 +65,12 @@ class Params
     public function createParameters(Order|OrderInterface $order): string
     {
         try {
-            $params = [];
+            $storeId = (int)$order->getStoreId();
+            $idx     = $this->integrationHelper->getStreetIndexes($storeId);
+            $params  = [];
 
             $customer = $this->getCustomer($order->getCustomerId());
-            $address = $order->getShippingAddress();
+            $address  = $order->getShippingAddress();
 
             $params["createDate"] = date('Y-m-d', strtotime($order->getCreatedAt())) . self::TIME_CONFIG_DATE;
             $params["lastUpdate"] = date('Y-m-d', strtotime($order->getUpdatedAt())) . self::TIME_CONFIG_DATE;
@@ -78,7 +80,7 @@ class Params
             $parentOrder = $this->getParentOrder($order);
             $params["marketplaceData"]["marketPlaceId"] = $order->getIncrementId();
             $params["marketplaceData"]["siteId"] = $parentOrder->getIncrementId();
-            $params["marketplaceData"]["marketplace"] = $this->integrationHelper->getTenantMarketplace((int)$order->getStoreId());
+            $params["marketplaceData"]["marketplace"] = $this->integrationHelper->getTenantMarketplace($storeId);
 
             $params["customerData"]["name"] = $order->getCustomerName();
             $params["customerData"]["document"] = (string)$this->getDocumentCustomer($order);
@@ -87,31 +89,29 @@ class Params
             $params["customerData"]["email"] = $order->getCustomerEmail();
 
             $street = $address->getStreet();
-            $params["customerData"]["addressData"]["zipcode"] = str_replace("-", "", $address->getPostcode());
-            $params["customerData"]["addressData"]["address"] = $street[0];
-            $aa = $street[1];
-            $params["customerData"]["addressData"]["number"] = $street[1];
-            $params["customerData"]["addressData"]["neighborhood"] = isset($street[2]) ? $street[2] : '';
-            $params["customerData"]["addressData"]["complement"] = isset($street[3]) ? $street[3] : '';
-            $params["customerData"]["addressData"]["city"] = $address->getCity();
+            $params["customerData"]["addressData"]["zipcode"]      = str_replace("-", "", $address->getPostcode());
+            $params["customerData"]["addressData"]["address"]      = $street[$idx['address']] ?? '';
+            $params["customerData"]["addressData"]["number"]       = $street[$idx['number']] ?? '';
+            $params["customerData"]["addressData"]["neighborhood"] = $street[$idx['neighborhood']] ?? '';
+            $params["customerData"]["addressData"]["complement"]   = $street[$idx['complement']] ?? '';
+            $params["customerData"]["addressData"]["city"]         = $address->getCity();
             unset($street);
 
             $region = $this->regionRepositoryInterface->getById((int)$address->getRegionId());
 
-            $params["customerData"]["addressData"]["state"] = $region->getDefaultName();
+            $params["customerData"]["addressData"]["state"]       = $region->getDefaultName();
             $params["customerData"]["addressData"]["stateAcronym"] = $region->getCode();
-            $params["customerData"]["addressData"]["country"] = $region->getCountryId();
+            $params["customerData"]["addressData"]["country"]     = $region->getCountryId();
 
             $telephone = $this->telephone->getTelephoneFormattedIntegration($this->getCustomerTelephone($customer) ?? '');
 
-            $params["customerData"]["phones"][0]["type"] = ConfigInterface::TELEPHONE_TYPE_NORMAL;
-            $params["customerData"]["phones"][0]["ddi"] = ConfigInterface::DDI;
-            $params["customerData"]["phones"][0]["ddd"] = $telephone["ddd"] ?? '';
+            $params["customerData"]["phones"][0]["type"]   = ConfigInterface::TELEPHONE_TYPE_NORMAL;
+            $params["customerData"]["phones"][0]["ddi"]    = ConfigInterface::DDI;
+            $params["customerData"]["phones"][0]["ddd"]    = $telephone["ddd"] ?? '';
             $params["customerData"]["phones"][0]["number"] = $telephone["number"] ?? '';
-            $params["customerData"]["phones"][0]["local"] = ConfigInterface::TELEPHONE_LOCAL_CELULAR;
+            $params["customerData"]["phones"][0]["local"]  = ConfigInterface::TELEPHONE_LOCAL_CELULAR;
             $params["freightData"]["chargedValue"] = $order->getShippingAmount();
 
-            $street = $order->getBillingAddress()->getStreet();
             $params["deliveryData"]["deliveryDate"] = null;
 
             if ($order->getSplitOrderType() != null) {
@@ -120,41 +120,41 @@ class Params
                 $deliveryData = $this->getDeliveryAddress($order);
             }
 
-            $params["deliveryData"]["deliveryMethodId"] = $deliveryData['deliveryMethodId'] ?? '';
+            $params["deliveryData"]["deliveryMethodId"]   = $deliveryData['deliveryMethodId'] ?? '';
             $params["deliveryData"]["deliveryMethodName"] = $deliveryData['description'] ?? '';
-            $params["deliveryData"]["shippingMethod"] = $deliveryData['logisticProviderName'] ?? '';
-            $params["deliveryData"]["quotationId"] = $deliveryData['quotationId'] ?? '';
+            $params["deliveryData"]["shippingMethod"]     = $deliveryData['logisticProviderName'] ?? '';
+            $params["deliveryData"]["quotationId"]        = $deliveryData['quotationId'] ?? '';
 
-            $params["deliveryData"]["addressData"]["zipcode"] = str_replace("-", "", $order->getBillingAddress()->getPostcode());
-            $params["deliveryData"]["addressData"]["address"] = $street[0];
-            $params["deliveryData"]["addressData"]["number"] = $street[1];
-            $params["deliveryData"]["addressData"]["neighborhood"] = isset($street[2]) ? $street[2] : '';
-            $params["deliveryData"]["addressData"]["complement"] = isset($street[3]) ? $street[3] : '';
-            $params["deliveryData"]["addressData"]["city"] = $order->getBillingAddress()->getCity();
-            unset($street);
+            $billingAddress = $order->getBillingAddress();
+            $street = $billingAddress->getStreet();
+            $params["deliveryData"]["addressData"]["zipcode"]      = str_replace("-", "", $billingAddress->getPostcode());
+            $params["deliveryData"]["addressData"]["address"]      = $street[$idx['address']] ?? '';
+            $params["deliveryData"]["addressData"]["number"]       = $street[$idx['number']] ?? '';
+            $params["deliveryData"]["addressData"]["neighborhood"] = $street[$idx['neighborhood']] ?? '';
+            $params["deliveryData"]["addressData"]["complement"]   = $street[$idx['complement']] ?? '';
+            $params["deliveryData"]["addressData"]["city"]         = $billingAddress->getCity();
 
-            $orderRegion = $this->regionRepositoryInterface->getById((int)$order->getBillingAddress()->getRegionId());
+            $orderRegion = $this->regionRepositoryInterface->getById((int)$billingAddress->getRegionId());
 
-            $params["deliveryData"]["addressData"]["state"] = $orderRegion->getDefaultName();
+            $params["deliveryData"]["addressData"]["state"]        = $orderRegion->getDefaultName();
             $params["deliveryData"]["addressData"]["stateAcronym"] = $orderRegion->getCode();
-            $params["deliveryData"]["addressData"]["country"] = $orderRegion->getCountryId();
+            $params["deliveryData"]["addressData"]["country"]      = $orderRegion->getCountryId();
 
-            $street = $order->getBillingAddress()->getStreet();
-            $params["paymentData"]["addressData"]["zipcode"] = str_replace("-", "", $order->getBillingAddress()->getPostcode());
-            $params["paymentData"]["addressData"]["address"] = $street[0];
-            $params["paymentData"]["addressData"]["number"] = $street[1];
-            $params["paymentData"]["addressData"]["neighborhood"] = isset($street[2]) ? $street[2] : '';
-            $params["paymentData"]["addressData"]["complement"] = isset($street[3]) ? $street[3] : '';
-            $params["paymentData"]["addressData"]["city"] = $order->getBillingAddress()->getCity();
-            $params["paymentData"]["addressData"]["state"] = $orderRegion->getDefaultName();
+            $params["paymentData"]["addressData"]["zipcode"]      = str_replace("-", "", $billingAddress->getPostcode());
+            $params["paymentData"]["addressData"]["address"]      = $street[$idx['address']] ?? '';
+            $params["paymentData"]["addressData"]["number"]       = $street[$idx['number']] ?? '';
+            $params["paymentData"]["addressData"]["neighborhood"] = $street[$idx['neighborhood']] ?? '';
+            $params["paymentData"]["addressData"]["complement"]   = $street[$idx['complement']] ?? '';
+            $params["paymentData"]["addressData"]["city"]         = $billingAddress->getCity();
+            $params["paymentData"]["addressData"]["state"]        = $orderRegion->getDefaultName();
             $params["paymentData"]["addressData"]["stateAcronym"] = $orderRegion->getCode();
-            $params["paymentData"]["addressData"]["country"] = $orderRegion->getCountryId();
+            $params["paymentData"]["addressData"]["country"]      = $orderRegion->getCountryId();
             unset($street);
 
             $items = $order->getAllVisibleItems();
 
             $paymentCode = $this->getPaymentMethod($order);
-            $params["paymentData"]["formsPayments"][0]["type"] = $paymentCode;
+            $params["paymentData"]["formsPayments"][0]["type"]  = $paymentCode;
             $params["paymentData"]["formsPayments"][0]["value"] = $order->getGrandTotal();
 
             $payment = $this->getParentPayment($order);
@@ -171,24 +171,36 @@ class Params
             $params["paymentData"]["formsPayments"][0]["operation"] = $payment->getAdditionalInformation('acquirer_transaction_id');
             $params["paymentData"]["formsPayments"][0]["nsu"] = $payment->getAdditionalInformation('terminal_nsu');
 
-            $params["deliveryData"]["estimatedDeliveryDate"] = $this->getEstimatedDeliveryDate($deliveryData['deliveryEstimateBusinessDays'], $order->getCreatedAt(), $paymentCode);
-            $params["orderValuesData"]["value"] = $order->getGrandTotal();
-            $params["orderValuesData"]["discount"] = $order->getDiscountAmount();
-            $params["orderValuesData"]["interest"] = 0;
-            $params["orderValuesData"]["netValue"] = $order->getGrandTotal();
+            $params["deliveryData"]["estimatedDeliveryDate"] = $this->getEstimatedDeliveryDate(
+                $deliveryData['deliveryEstimateBusinessDays'],
+                $order->getCreatedAt(),
+                $paymentCode,
+                $storeId
+            );
+            $params["orderValuesData"]["value"]      = $order->getGrandTotal();
+            $params["orderValuesData"]["discount"]   = $order->getDiscountAmount();
+            $params["orderValuesData"]["interest"]   = 0;
+            $params["orderValuesData"]["netValue"]   = $order->getGrandTotal();
             $params["orderValuesData"]["grossValue"] = $order->getSubtotal();
 
-            $freightItem = (float)($order->getShippingAmount() / count($items));
+            $itemCount   = count($items);
+            $freightItem = $itemCount > 0 ? round((float)$order->getShippingAmount() / $itemCount, 2) : 0.0;
 
+            $skuIdAttr = $this->integrationHelper->getAttrSkuId($storeId);
             $i = 0;
-            foreach ($items as $k => $item) {
+            foreach ($items as $item) {
                 $product = $this->productRepositoryInterface->get($item->getSku());
-
-                $params["items"][$i]["skuData"]["id"] = $product->getCustomAttribute("sku_id_omnik")->getValue();
-                $params["items"][$i]["priceData"]["unitPrice"] = $item->getPrice();
-                $params["items"][$i]["priceData"]["discountUnit"] = $item->getDiscountAmount();
-                $params["items"][$i]["quantityData"]["quantity"] = (int)$item->getQtyOrdered();
-                $params["items"][$i]["freightData"]["chargedValue"] = $freightItem;
+                $skuId   = $product->getCustomAttribute($skuIdAttr)?->getValue();
+                if (empty($skuId)) {
+                    throw new \RuntimeException(
+                        sprintf('Produto "%s" sem atributo "%s" (SKU ID Omnik) preenchido.', $item->getSku(), $skuIdAttr)
+                    );
+                }
+                $params["items"][$i]["skuData"]["id"]               = $skuId;
+                $params["items"][$i]["priceData"]["unitPrice"]       = $item->getPrice();
+                $params["items"][$i]["priceData"]["discountUnit"]    = $item->getDiscountAmount();
+                $params["items"][$i]["quantityData"]["quantity"]     = (int)$item->getQtyOrdered();
+                $params["items"][$i]["freightData"]["chargedValue"]  = $freightItem;
                 $i++;
             }
 
@@ -197,7 +209,7 @@ class Params
 
             return $paramsSerialize;
         } catch (\Exception $e) {
-            $this->logger->info($e->getMessage());
+            $this->logger->error($e->getMessage());
         }
 
         return "";
@@ -263,9 +275,17 @@ class Params
      */
     public function getOrderTenant($order)
     {
-        $item = current($order->getItems());
-        $product = $this->productRepositoryInterface->get($item->getSku());
-        return $product->getCustomAttribute('tenant')->getValue();
+        $storeId   = (int)$order->getStoreId();
+        $attrCode  = $this->integrationHelper->getAttrTenant($storeId);
+        $item      = current($order->getItems());
+        $product   = $this->productRepositoryInterface->get($item->getSku());
+        $tenantVal = $product->getCustomAttribute($attrCode)?->getValue();
+        if (empty($tenantVal)) {
+            throw new \RuntimeException(
+                sprintf('Produto "%s" sem atributo "%s" (Tenant) preenchido.', $item->getSku(), $attrCode)
+            );
+        }
+        return $tenantVal;
     }
 
     /**
@@ -317,20 +337,42 @@ class Params
      * @param $deliveryDays
      * @param $orderDate
      * @param $paymentCode
-     * @return string
+     * @param int $storeId
+     * @return string|null
      */
-    private function getEstimatedDeliveryDate($deliveryDays, $orderDate, $paymentCode)
+    private function getEstimatedDeliveryDate($deliveryDays, $orderDate, $paymentCode, int $storeId = 0)
     {
         if (!$deliveryDays) {
             return null;
         }
 
-        if ($paymentCode === 'getnet_paymentmagento_boleto') {
-            $deliveryDays = $deliveryDays + 3;
+        $days = (int)$deliveryDays;
+        if ($paymentCode === self::GETNET_BOLETO) {
+            $days += $this->integrationHelper->getBoletoExtraDays($storeId);
         }
 
-        $estimatedDeliveryDate = date('Y-m-d', strtotime($orderDate . ' +' . $deliveryDays . ' weekdays'));
-        return $estimatedDeliveryDate . self::TIME_CONFIG_DATE;
+        $date = new \DateTime($orderDate);
+        $date = $this->_addBusinessDays($date, $days);
+
+        return $date->format('Y-m-d') . self::TIME_CONFIG_DATE;
+    }
+
+    /**
+     * @param \DateTime $date
+     * @param int $days
+     * @return \DateTime
+     */
+    private function _addBusinessDays(\DateTime $date, int $days): \DateTime
+    {
+        $added = 0;
+        while ($added < $days) {
+            $date->modify('+1 day');
+            // 1=Mon ... 5=Fri, 6=Sat, 7=Sun
+            if ((int)$date->format('N') < 6) {
+                $added++;
+            }
+        }
+        return $date;
     }
 
     /**

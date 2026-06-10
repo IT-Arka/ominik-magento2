@@ -3,6 +3,7 @@
 namespace Omnik\Core\Console\Brands;
 
 use Exception;
+use Omnik\Core\Helper\Config as ConfigHelper;
 use Omnik\Core\Model\Integration\Brand\GetList;
 use Magento\Catalog\Api\Data\ProductAttributeInterface;
 use Magento\Eav\Api\AttributeOptionManagementInterface;
@@ -45,24 +46,32 @@ class ImportBrands extends Command
     private Config $eavConfig;
 
     /**
+     * @var ConfigHelper
+     */
+    private ConfigHelper $configHelper;
+
+    /**
      * @param State $state
      * @param GetList $getList
      * @param AttributeOptionManagementInterface $optionManagement
      * @param AttributeOptionInterfaceFactory $optionFactory
      * @param Config $eavConfig
+     * @param ConfigHelper $configHelper
      */
     public function __construct(
         State $state,
         GetList $getList,
         AttributeOptionManagementInterface $optionManagement,
         AttributeOptionInterfaceFactory $optionFactory,
-        Config $eavConfig
+        Config $eavConfig,
+        ConfigHelper $configHelper
     ) {
         $this->state = $state;
         $this->getList = $getList;
         $this->optionManagement = $optionManagement;
         $this->optionFactory = $optionFactory;
         $this->eavConfig = $eavConfig;
+        $this->configHelper = $configHelper;
         parent::__construct();
     }
 
@@ -112,7 +121,7 @@ class ImportBrands extends Command
 
         $attributeData = $this->eavConfig->getAttribute(
             ProductAttributeInterface::ENTITY_TYPE_CODE,
-            self::ATTRIBUTE_CODE_BRAND,
+            $this->configHelper->getAttrBrand(),
         )->getSource()->getAllOptions();
 
         $optionLabelExistData = array_column($attributeData, 'label');
@@ -168,7 +177,7 @@ class ImportBrands extends Command
 
         $this->optionManagement->add(
             ProductAttributeInterface::ENTITY_TYPE_CODE,
-            self::ATTRIBUTE_CODE_BRAND,
+            $this->configHelper->getAttrBrand(),
             $option
         );
     }

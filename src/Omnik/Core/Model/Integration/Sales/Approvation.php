@@ -2,6 +2,8 @@
 
 namespace Omnik\Core\Model\Integration\Sales;
 
+use Omnik\Core\Helper\Config as ConfigHelper;
+use Omnik\Core\Helper\StatusMapping as StatusMappingHelper;
 use Omnik\Core\Model\Integration\Order\SendStatus;
 use Omnik\Core\Logger\Logger;
 use Omnik\Core\Model\Integration\Params;
@@ -31,21 +33,37 @@ class Approvation
     private Logger $salesLogger;
 
     /**
+     * @var StatusMappingHelper
+     */
+    private StatusMappingHelper $_statusMappingHelper;
+
+    /**
+     * @var ConfigHelper
+     */
+    private ConfigHelper $_configHelper;
+
+    /**
      * @param Params $params
      * @param SendStatus $sendStatus
      * @param ProductRepositoryInterface $productRepositoryInterface
      * @param Logger $salesLogger
+     * @param StatusMappingHelper $statusMappingHelper
+     * @param ConfigHelper $configHelper
      */
     public function __construct(
         Params                     $params,
         SendStatus                 $sendStatus,
         ProductRepositoryInterface $productRepositoryInterface,
-        Logger                     $salesLogger
+        Logger                     $salesLogger,
+        StatusMappingHelper        $statusMappingHelper,
+        ConfigHelper               $configHelper
     ) {
         $this->params = $params;
         $this->sendStatus = $sendStatus;
         $this->productRepositoryInterface = $productRepositoryInterface;
         $this->salesLogger = $salesLogger;
+        $this->_statusMappingHelper = $statusMappingHelper;
+        $this->_configHelper = $configHelper;
     }
 
     /**
@@ -56,8 +74,8 @@ class Approvation
     {
         try {
             $storeId = (int)$order->getStoreId();
-            $tenant = $this->getTenant($order);
-            $params = $this->params->createParametersForUpdate($order);
+            $tenant  = $this->getTenant($order);
+            $params  = $this->params->createParametersForUpdate($order);
 
             if ($this->isApproved($order)) {
                 $this->sendStatus->execute($params, $tenant, $storeId, $order->getIncrementId(), true);
@@ -75,8 +93,19 @@ class Approvation
      * @param $order
      * @return bool
      */
-    public function isApproved($order)
+    public function isApproved($order): bool
     {
+        if ($this->_statusMappingHelper->isMapEnabled()) {
+            $omnikStatus = $this->_statusMappingHelper->getOmnikStatusByAdobeStatus($order->getStatus());
+            if ($omnikStatus === 'APPROVED') {
+                return true;
+            }
+            if (in_array($omnikStatus, ['CANCELED', 'NOT_APPROVED'])) {
+                return false;
+            }
+        }
+
+        // Fallback: comportamento original quando mapeamento não está ativo
         foreach ($order->getStatusHistories() as $statusHistory) {
             if ($statusHistory->getEntityName() == 'order' && $statusHistory->getStatus() == 'canceled') {
                 return false;
@@ -90,9 +119,14 @@ class Approvation
      * @param $order
      * @return bool
      */
-    public function isNotApproved($order)
+    public function isNotApproved($order): bool
     {
-        return $order->getStatus() == 'canceled';
+        if ($this->_statusMappingHelper->isMapEnabled()) {
+            $omnikStatus = $this->_statusMappingHelper->getOmnikStatusByAdobeStatus($order->getStatus());
+            return in_array($omnikStatus, ['CANCELED', 'NOT_APPROVED']);
+        }
+
+        return $order->getStatus() === 'canceled';
     }
 
     /**
@@ -102,8 +136,16 @@ class Approvation
      */
     public function getTenant($order)
     {
-        $item = current($order->getItems())->getData();
-        $product = $this->productRepositoryInterface->get($item['sku']);
-        return $product->getCustomAttribute('tenant')->getValue();
+        $storeId   = (int)$order->getStoreId();
+        $attrCode  = $this->_configHelper->getAttrTenant($storeId);
+        $itemData  = current($order->getItems())->getData();
+        $product   = $this->productRepositoryInterface->get($itemData['sku']);
+        $tenantVal = $product->getCustomAttribute($attrCode)?->getValue();
+        if (empty($tenantVal)) {
+            throw new \RuntimeException(
+                sprintf('Produto "%s" sem atributo "%s" (Tenant) preenchido.', $itemData['sku'], $attrCode)
+            );
+        }
+        return $tenantVal;
     }
 }

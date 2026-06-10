@@ -33,9 +33,10 @@
                     <label>Api URL FREIGHT</label>
                     <config_path>omnik_integration/general/url_freight</config_path>
                 </field>
-                <field id="token" translate="label" type="text" sortOrder="50" showInDefault="1" showInWebsite="0" showInStore="1">
+                <field id="token" translate="label" type="obscure" sortOrder="50" showInDefault="1" showInWebsite="0" showInStore="1">
                     <label>Api Token</label>
                     <config_path>omnik_integration/general/token</config_path>
+                    <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
                 </field>
                 <field id="application_id" translate="label" type="text" sortOrder="60" showInDefault="1" showInWebsite="0" showInStore="1">
                     <label>Application ID</label>
@@ -53,6 +54,94 @@
                     <label>Enable Log</label>
                     <config_path>omnik_integration/general/log_requests</config_path>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="boleto_extra_days" translate="label comment" type="text" sortOrder="100" showInDefault="1" showInWebsite="0" showInStore="1">
+                    <label>Boleto: dias extras para entrega</label>
+                    <comment>Dias úteis adicionados ao prazo estimado para pedidos pagos com boleto (padrão: 3)</comment>
+                    <config_path>omnik_integration/general/boleto_extra_days</config_path>
+                    <validate>validate-digits validate-zero-or-greater</validate>
+                </field>
+            </group>
+
+            <group id="address_mapping" translate="label" type="text" sortOrder="15" showInDefault="1" showInWebsite="0" showInStore="1">
+                <label>Mapeamento de Endereço</label>
+                <comment>Configure a posição (índice) de cada campo no array de rua do checkout. O padrão (alinhado ao checkout do módulo) é 0=Logradouro, 1=Número, 2=Complemento, 3=Bairro.</comment>
+                <field id="street_index_address" translate="label comment" type="text" sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="1">
+                    <label>Índice: Logradouro</label>
+                    <comment>Posição do logradouro no array street[] (padrão: 0)</comment>
+                    <config_path>omnik_integration/address_mapping/street_index_address</config_path>
+                    <validate>validate-digits validate-zero-or-greater</validate>
+                </field>
+                <field id="street_index_number" translate="label comment" type="text" sortOrder="20" showInDefault="1" showInWebsite="0" showInStore="1">
+                    <label>Índice: Número</label>
+                    <comment>Posição do número no array street[] (padrão: 1)</comment>
+                    <config_path>omnik_integration/address_mapping/street_index_number</config_path>
+                    <validate>validate-digits validate-zero-or-greater</validate>
+                </field>
+                <field id="street_index_complement" translate="label comment" type="text" sortOrder="30" showInDefault="1" showInWebsite="0" showInStore="1">
+                    <label>Índice: Complemento</label>
+                    <comment>Posição do complemento no array street[] (padrão: 2)</comment>
+                    <config_path>omnik_integration/address_mapping/street_index_complement</config_path>
+                    <validate>validate-digits validate-zero-or-greater</validate>
+                </field>
+                <field id="street_index_neighborhood" translate="label comment" type="text" sortOrder="40" showInDefault="1" showInWebsite="0" showInStore="1">
+                    <label>Índice: Bairro</label>
+                    <comment>Posição do bairro no array street[] (padrão: 3)</comment>
+                    <config_path>omnik_integration/address_mapping/street_index_neighborhood</config_path>
+                    <validate>validate-digits validate-zero-or-greater</validate>
+                </field>
+            </group>
+
+            <group id="product_attributes" translate="label" type="text" sortOrder="20" showInDefault="1" showInWebsite="0" showInStore="1">
+                <label>Mapeamento de Atributos de Produto</label>
+                <comment>Selecione qual atributo do seu catálogo corresponde a cada campo Omnik. Os defaults são os atributos criados pelo próprio módulo.</comment>
+                <field id="attr_tenant" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="1">
+                    <label>Atributo: Tenant (Seller)</label>
+                    <comment>Identifica o vendedor/seller dono do produto. Usado no split de pedidos e no payload enviado à Omnik.</comment>
+                    <config_path>omnik_integration/product_attributes/attr_tenant</config_path>
+                    <source_model>Omnik\Core\Model\Config\Source\ProductAttributes</source_model>
+                </field>
+                <field id="attr_sku_id" translate="label comment" type="select" sortOrder="20" showInDefault="1" showInWebsite="0" showInStore="1">
+                    <label>Atributo: SKU ID Omnik</label>
+                    <comment>ID do SKU no sistema Omnik. Enviado em items[].skuData.id no payload do pedido.</comment>
+                    <config_path>omnik_integration/product_attributes/attr_sku_id</config_path>
+                    <source_model>Omnik\Core\Model\Config\Source\ProductAttributes</source_model>
+                </field>
+                <field id="attr_variant_seller" translate="label comment" type="select" sortOrder="30" showInDefault="1" showInWebsite="0" showInStore="1">
+                    <label>Atributo: Variant Seller</label>
+                    <comment>Atributo SELECT que identifica o seller na variação do produto. Usado para agrupar itens no split de pedidos.</comment>
+                    <config_path>omnik_integration/product_attributes/attr_variant_seller</config_path>
+                    <source_model>Omnik\Core\Model\Config\Source\ProductAttributes</source_model>
+                </field>
+                <field id="attr_variant_color" translate="label comment" type="select" sortOrder="40" showInDefault="1" showInWebsite="0" showInStore="1">
+                    <label>Atributo: Variant Cor</label>
+                    <comment>Atributo de cor da variação do produto.</comment>
+                    <config_path>omnik_integration/product_attributes/attr_variant_color</config_path>
+                    <source_model>Omnik\Core\Model\Config\Source\ProductAttributes</source_model>
+                </field>
+                <field id="attr_variant_embalagem" translate="label comment" type="select" sortOrder="50" showInDefault="1" showInWebsite="0" showInStore="1">
+                    <label>Atributo: Variant Embalagem</label>
+                    <comment>Atributo de tipo de embalagem da variação do produto.</comment>
+                    <config_path>omnik_integration/product_attributes/attr_variant_embalagem</config_path>
+                    <source_model>Omnik\Core\Model\Config\Source\ProductAttributes</source_model>
+                </field>
+                <field id="attr_variant_tamanho" translate="label comment" type="select" sortOrder="60" showInDefault="1" showInWebsite="0" showInStore="1">
+                    <label>Atributo: Variant Tamanho</label>
+                    <comment>Atributo de tamanho da variação do produto.</comment>
+                    <config_path>omnik_integration/product_attributes/attr_variant_tamanho</config_path>
+                    <source_model>Omnik\Core\Model\Config\Source\ProductAttributes</source_model>
+                </field>
+                <field id="attr_erp_code" translate="label comment" type="select" sortOrder="70" showInDefault="1" showInWebsite="0" showInStore="1">
+                    <label>Atributo: Código ERP</label>
+                    <comment>Código identificador do produto no ERP integrado.</comment>
+                    <config_path>omnik_integration/product_attributes/attr_erp_code</config_path>
+                    <source_model>Omnik\Core\Model\Config\Source\ProductAttributes</source_model>
+                </field>
+                <field id="attr_brand" translate="label comment" type="select" sortOrder="80" showInDefault="1" showInWebsite="0" showInStore="1">
+                    <label>Atributo: Marca (Brand)</label>
+                    <comment>Atributo de marca do produto exibido no buybox de variações.</comment>
+                    <config_path>omnik_integration/product_attributes/attr_brand</config_path>
+                    <source_model>Omnik\Core\Model\Config\Source\ProductAttributes</source_model>
                 </field>
             </group>
         </section>

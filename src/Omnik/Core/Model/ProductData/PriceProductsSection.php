@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Omnik\Core\Model\ProductData;
 
 use Omnik\Core\Api\PriceProductsSectionInterface;
+use Omnik\Core\Helper\Config as ConfigHelper;
 use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\Webapi\Rest\Request;
@@ -66,6 +67,11 @@ class PriceProductsSection implements PriceProductsSectionInterface
      * @param PriceProducts $priceProducts
      * @param CalculatePrice $calculatePrice
      */
+    /**
+     * @var ConfigHelper
+     */
+    private ConfigHelper $_configHelper;
+
     public function __construct(
         SearchCriteriaBuilder $searchCriteriaBuilder,
         ProductRepositoryInterface $productRepositoryInterface,
@@ -74,7 +80,8 @@ class PriceProductsSection implements PriceProductsSectionInterface
         CustomerSessionFactory $customerSessionFactory,
         Stock $stock,
         PriceProducts $priceProducts,
-        CalculatePrice $calculatePrice
+        CalculatePrice $calculatePrice,
+        ConfigHelper $configHelper
     ) {
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
         $this->productRepositoryInterface = $productRepositoryInterface;
@@ -84,6 +91,7 @@ class PriceProductsSection implements PriceProductsSectionInterface
         $this->stock = $stock;
         $this->priceProducts = $priceProducts;
         $this->calculatePrice = $calculatePrice;
+        $this->_configHelper = $configHelper;
     }
 
     /**
@@ -180,10 +188,10 @@ class PriceProductsSection implements PriceProductsSectionInterface
                 continue;
             }
 
-            $seller = (int) $children->getCustomAttribute("variant_seller")->getValue();
+            $seller = (int)($children->getCustomAttribute($this->_configHelper->getAttrVariantSeller())?->getValue() ?? 0);
 
             if ($sellerId == $seller) {
-                $swatch = (int)$children->getCustomAttribute("variant_embalagem")->getValue();
+                $swatch = (int)($children->getCustomAttribute($this->_configHelper->getAttrVariantEmbalagem())?->getValue() ?? 0);
                 $variant = "#" . $swatch;
                 $result[$product->getId()][$variant]['price'] = $this->priceProducts->getResultPrices(PriceProducts::TYPE_PRICE, $children);
 
@@ -216,7 +224,7 @@ class PriceProductsSection implements PriceProductsSectionInterface
         if ($sellerId == 0) {
             $products = $product->getTypeInstance()->getUsedProducts($product);
             foreach ($products as $children) {
-                $swatchVariantId = (int) $children->getCustomAttribute('variant_embalagem')->getValue();
+                $swatchVariantId = (int)($children->getCustomAttribute($this->_configHelper->getAttrVariantEmbalagem())?->getValue() ?? 0);
             }
         }
 

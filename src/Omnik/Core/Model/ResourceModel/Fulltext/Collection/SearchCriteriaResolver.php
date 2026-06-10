@@ -15,6 +15,7 @@ namespace Omnik\Core\Model\ResourceModel\Fulltext\Collection;
 
 use Magento\Elasticsearch\Model\ResourceModel\Fulltext\Collection\SearchCriteriaResolver
     as MagentoSearchCriteriaResolver;
+use Magento\Framework\Data\Collection;
 use Magento\Framework\Api\Search\SearchCriteriaBuilder;
 use Magento\Framework\Api\Search\SearchCriteria;
 use Magento\Catalog\Model\Session;
@@ -26,6 +27,11 @@ class SearchCriteriaResolver extends MagentoSearchCriteriaResolver
      * @var SearchCriteriaBuilder
      */
     private SearchCriteriaBuilder $builder;
+
+    /**
+     * @var Collection
+     */
+    private Collection $collection;
 
     /**
      * @var string
@@ -66,6 +72,7 @@ class SearchCriteriaResolver extends MagentoSearchCriteriaResolver
      * @param DeploymentConfig $deploymentConfig
      * @param Session $catalogSession
      * @param SearchCriteriaBuilder $builder
+     * @param Collection $collection
      * @param string $searchRequestName
      * @param int $currentPage
      * @param int $size
@@ -78,12 +85,15 @@ class SearchCriteriaResolver extends MagentoSearchCriteriaResolver
         DeploymentConfig $deploymentConfig,
         Session $catalogSession,
         SearchCriteriaBuilder $builder,
+        Collection $collection,
         string $searchRequestName,
         int $currentPage,
         int $size,
-        ?array $orders = null
+        ?array
+        $orders
     ) {
         $this->builder = $builder;
+        $this->collection = $collection;
         $this->searchRequestName = $searchRequestName;
         $this->currentPage = $currentPage;
         $this->size = $size;
@@ -98,7 +108,7 @@ class SearchCriteriaResolver extends MagentoSearchCriteriaResolver
 
         $this->redis = new \Cm_Cache_Backend_Redis($options);
 
-        parent::__construct($builder, $searchRequestName, $currentPage, $size, $orders);
+        parent::__construct($builder, $collection, $searchRequestName, $currentPage, $size, $orders);
     }
 
     /**

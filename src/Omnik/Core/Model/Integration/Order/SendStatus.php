@@ -22,8 +22,13 @@ class SendStatus extends AbstractIntegration
     public function execute(array $params, string $sellerTenant, int $storeId, string $marketplaceid, $isApproved)
     {
         $client = $this->getClient($storeId);
-        $this->config->set(ConfigInterface::PARAM_SELLER, $sellerTenant);
-        $client->setConfig($this->config);
+
+        // O seller (tenant) é lido de Client::getHeaders() a partir da config do
+        // próprio Client. Setamos nela para o header "seller" ser enviado à Omnik.
+        $config = $client->getConfig();
+        if ($config) {
+            $config->set(ConfigInterface::PARAM_SELLER, $sellerTenant);
+        }
 
         $path = $this->getPathEndpoint($marketplaceid, $isApproved);
         $additionalHeaders[ConfigInterface::PARAM_SELLER] = $sellerTenant;

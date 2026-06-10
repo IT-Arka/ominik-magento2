@@ -5,6 +5,7 @@ namespace Omnik\Core\Plugin\Block\Product\View\Type;
 use Magento\ConfigurableProduct\Block\Product\View\Type\Configurable;
 use Magento\Framework\Serialize\SerializerInterface;
 use Magento\Catalog\Model\ProductFactory;
+use Omnik\Core\Helper\Config as ConfigHelper;
 
 class ConfigurablePlugin
 {
@@ -14,9 +15,9 @@ class ConfigurablePlugin
      */
     public function __construct(
         private readonly SerializerInterface $serializer,
-        private readonly ProductFactory $productFactory
+        private readonly ProductFactory $productFactory,
+        private readonly ConfigHelper $configHelper
     ) {
-
     }
 
     /**
@@ -35,13 +36,19 @@ class ConfigurablePlugin
         $config['description_config'] = $subject->getProduct()->getShortDescription();
         $config['sku_config'] = $subject->getProduct()->getSku();
 
+        $sellerAttr   = $this->configHelper->getAttrVariantSeller();
+        $colorAttr    = $this->configHelper->getAttrVariantColor();
+        $embalagemAttr = $this->configHelper->getAttrVariantEmbalagem();
+        $tamanhoAttr  = $this->configHelper->getAttrVariantTamanho();
+
         foreach ($subject->getAllowProducts() as $simpleProduct) {
-            $config['skus'][$simpleProduct->getId()] = $this->splitSkuToOriginal($simpleProduct, $simpleProduct->getStoreId());
-            $config['description'][$simpleProduct->getId()] = $simpleProduct->getShortDescription() ?? $subject->getProduct()->getShortDescription();
-            $config['seller'][$simpleProduct->getId()] = $this->getAttributeValue($simpleProduct, 'variant_seller');
-            $config['color'][$simpleProduct->getId()] = $this->getAttributeValue($simpleProduct, 'variant_color');
-            $config['embalagem'][$simpleProduct->getId()] = $this->getAttributeValue($simpleProduct, 'variant_embalagem');
-            $config['tamanho'][$simpleProduct->getId()] = $this->getAttributeValue($simpleProduct, 'variant_tamanho');
+            $pid = $simpleProduct->getId();
+            $config['skus'][$pid]        = $this->splitSkuToOriginal($simpleProduct, $simpleProduct->getStoreId());
+            $config['description'][$pid] = $simpleProduct->getShortDescription() ?? $subject->getProduct()->getShortDescription();
+            $config['seller'][$pid]      = $this->getAttributeValue($simpleProduct, $sellerAttr);
+            $config['color'][$pid]       = $this->getAttributeValue($simpleProduct, $colorAttr);
+            $config['embalagem'][$pid]   = $this->getAttributeValue($simpleProduct, $embalagemAttr);
+            $config['tamanho'][$pid]     = $this->getAttributeValue($simpleProduct, $tamanhoAttr);
         }
 
         return $this->serializer->serialize($config);
@@ -70,12 +77,10 @@ class ConfigurablePlugin
      */
     public function splitSkuToOriginal($product, $storeId)
     {
-        $tenant = "";
-        $product = $this->productFactory->create()->load($product->getId());
-        if($product->getCustomAttribute('tenant') != null)
-            $tenant = $product->getCustomAttribute('tenant')->getValue();
-        $tenant = str_replace("OMPX", "", $tenant);
-        $sku = $product->getSku();
+        $tenantAttr = $this->configHelper->getAttrTenant((int)$storeId);
+        $product    = $this->productFactory->create()->load($product->getId());
+        $tenant     = str_replace("OMPX", "", $product->getCustomAttribute($tenantAttr)?->getValue() ?? '');
+        $sku        = $product->getSku();
 
         return str_replace("-" . $tenant, "", str_replace($storeId . "_", "", $sku));
     }

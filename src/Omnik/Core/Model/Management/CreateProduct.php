@@ -29,6 +29,7 @@ use Magento\Eav\Api\AttributeOptionManagementInterface;
 use Magento\Eav\Api\Data\AttributeOptionInterfaceFactory;
 use Omnik\Core\Model\SellerFactory;
 use Omnik\Core\Logger\Logger;
+use Omnik\Core\Helper\Config as ConfigHelper;
 
 class CreateProduct
 {
@@ -53,14 +54,12 @@ class CreateProduct
     public const ATTRIBUTE_HEIGHT_PACKAGE = 'height';
     public const ATTRIBUTE_LENGHT_PACKAGE = 'lenght';
     /**
+     * Mapa NOME_OMNIK => código de atributo Magento.
+     * Resolvido dinamicamente no construtor via ConfigHelper.
+     *
      * @var array|string[]
      */
-    private array $variantNameData = [
-        'EMBALAGEM' => self::ATTRIBUTE_CODE_VARIANT_EMBALAGEM,
-        'COR' => self::ATTRIBUTE_CODE_VARIANT_COR,
-        'TAMANHO' => self::ATTRIBUTE_CODE_VARIANT_TAMANHO,
-        'SELLER' => self::ATTRIBUTE_CODE_VARIANT_SELLER
-    ];
+    private array $variantNameData = [];
 
     /**
      * @param ProductFactory $productFactory
@@ -76,6 +75,7 @@ class CreateProduct
      * @param AttributeOptionInterfaceFactory $optionFactory
      * @param SellerFactory $sellerFactory
      * @param Logger $logger
+     * @param ConfigHelper $configHelper
      */
     public function __construct(
         private readonly ProductFactory              $productFactory,
@@ -90,9 +90,65 @@ class CreateProduct
         private AttributeOptionManagementInterface   $optionManagement,
         private AttributeOptionInterfaceFactory      $optionFactory,
         private SellerFactory                        $sellerFactory,
-        private Logger                               $logger
+        private Logger                               $logger,
+        private readonly ConfigHelper                 $configHelper
     ) {
+        $this->variantNameData = [
+            'EMBALAGEM' => $this->configHelper->getAttrVariantEmbalagem(),
+            'COR'       => $this->configHelper->getAttrVariantColor(),
+            'TAMANHO'   => $this->configHelper->getAttrVariantTamanho(),
+            'SELLER'    => $this->configHelper->getAttrVariantSeller()
+        ];
+    }
 
+    /**
+     * Código do atributo Tenant configurado.
+     *
+     * @return string
+     */
+    private function _getTenantAttr(): string
+    {
+        return $this->configHelper->getAttrTenant();
+    }
+
+    /**
+     * Código do atributo SKU ID Omnik configurado.
+     *
+     * @return string
+     */
+    private function _getSkuIdAttr(): string
+    {
+        return $this->configHelper->getAttrSkuId();
+    }
+
+    /**
+     * Código do atributo Marca (brand) configurado.
+     *
+     * @return string
+     */
+    private function _getBrandAttr(): string
+    {
+        return $this->configHelper->getAttrBrand();
+    }
+
+    /**
+     * Código do atributo Variant Seller configurado.
+     *
+     * @return string
+     */
+    private function _getVariantSellerAttr(): string
+    {
+        return $this->configHelper->getAttrVariantSeller();
+    }
+
+    /**
+     * Código do atributo Código ERP configurado.
+     *
+     * @return string
+     */
+    private function _getErpCodeAttr(): string
+    {
+        return $this->configHelper->getAttrErpCode();
     }
 
     /**
@@ -175,7 +231,7 @@ class CreateProduct
         }
 
         $optionIdBrand = $this->productHelper->getOptionIdAttributeByLabel(
-            self::ATTRIBUTE_BRANDS,
+            $this->_getBrandAttr(),
             $productModeratedData['productData']['brand']
         );
 
@@ -195,9 +251,9 @@ class CreateProduct
 
         $product->setUrlKey($urlKey);
         $product->setCustomAttribute(self::ATTRIBUTE_EAN, $ean);
-        $product->setCustomAttribute(self::ATTRIBUTE_BRANDS, $optionIdBrand);
-        $product->setCustomAttribute(self::ATTRIBUTE_SKU_ID_OMNIK, $productModeratedData['productData']['id']);
-        $product->setCustomAttribute(self::ATTRIBUTE_ERP_CODE, $erpCode);
+        $product->setCustomAttribute($this->_getBrandAttr(), $optionIdBrand);
+        $product->setCustomAttribute($this->_getSkuIdAttr(), $productModeratedData['productData']['id']);
+        $product->setCustomAttribute($this->_getErpCodeAttr(), $erpCode);
         $product->setCustomAttribute(self::ATTRIBUTE_TYPE_PACKAGE, $typePackage);
         $product->setCustomAttribute(self::ATTRIBUTE_SIZE_PACKAGE, $sizePackage);
         $product->setCustomAttribute(self::ATTRIBUTE_WIDTH_PACKAGE, (float)$productModeratedData['packageDimensionData']['width']);
@@ -260,7 +316,7 @@ class CreateProduct
 
 
             $optionIdBrand = $this->productHelper->getOptionIdAttributeByLabel(
-                self::ATTRIBUTE_BRANDS,
+                $this->_getBrandAttr(),
                 $productModeratedData['productData']['brand']
             );
 
@@ -280,10 +336,10 @@ class CreateProduct
             $urlKey = $this->createUrlKey($product, $sku, $storeId);
 
             $product->setUrlKey($urlKey);
-            $product->setCustomAttribute(self::ATTRIBUTE_BRANDS, $optionIdBrand);
-            $product->setCustomAttribute(self::ATTRIBUTE_SKU_ID_OMNIK, $productData['skuData']['id']);
+            $product->setCustomAttribute($this->_getBrandAttr(), $optionIdBrand);
+            $product->setCustomAttribute($this->_getSkuIdAttr(), $productData['skuData']['id']);
             $product->setCustomAttribute(self::ATTRIBUTE_EAN, $productData['skuData']['gtin'] ?? '');
-            $product->setData(self::ATTRIBUTE_TENANT, $productModeratedData['tenant']);
+            $product->setData($this->_getTenantAttr(), $productModeratedData['tenant']);
             // $product->setData(self::ATTRIBUTE_CODE_VARIANT_SELLER, $productModeratedData['tenant']);
             $product->setCustomAttribute(self::ATTRIBUTE_WIDTH_PACKAGE, (float)$productModeratedData['packageDimensionData']['width']);
             $product->setCustomAttribute(self::ATTRIBUTE_HEIGHT_PACKAGE, (float)$productModeratedData['packageDimensionData']['height']);
@@ -305,10 +361,10 @@ class CreateProduct
 
             if ($seller) {
                 $optionId = $this->productHelper->getOptionIdAttributeByLabel(
-                    self::ATTRIBUTE_CODE_VARIANT_SELLER,
+                    $this->_getVariantSellerAttr(),
                     $seller
                 );
-                $product->setCustomAttribute(self::ATTRIBUTE_CODE_VARIANT_SELLER, $optionId);
+                $product->setCustomAttribute($this->_getVariantSellerAttr(), $optionId);
             }
             $product->setPrice((float)$productData['priceData']['price']);
             $product->setWeight((float)$productData['packageDimensionData']['grossWeight']);
@@ -619,7 +675,7 @@ class CreateProduct
             $option->setLabel($seller);
             $this->optionManagement->add(
                 ProductAttributeInterface::ENTITY_TYPE_CODE,
-                self::ATTRIBUTE_CODE_VARIANT_SELLER,
+                $this->_getVariantSellerAttr(),
                 $option
             );
             

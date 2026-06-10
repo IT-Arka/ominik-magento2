@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Omnik\Core\Model\Config\Configurable;
 
+use Omnik\Core\Helper\Config as ConfigHelper;
 use Magento\Catalog\Model\Product\Attribute\Repository;
 use Magento\Catalog\Model\ResourceModel\Eav\Attribute as Attribute;
 use Magento\Framework\Exception\LocalizedException;
@@ -15,8 +16,6 @@ use Magento\Catalog\Model\Product;
 
 class ProductsOptions
 {
-    public const CODE = 'variant_seller';
-
     /**
      * @var Attribute
      */
@@ -43,24 +42,32 @@ class ProductsOptions
     private Product $modelProduct;
 
     /**
+     * @var ConfigHelper
+     */
+    private ConfigHelper $configHelper;
+
+    /**
      * @param Attribute $attribute
      * @param Repository $repository
      * @param ProductRepositoryInterface $productRepository
      * @param Configurable $configurableProduct
      * @param Product $modelProduct
+     * @param ConfigHelper $configHelper
      */
     public function __construct(
         Attribute                  $attribute,
         Repository                 $repository,
         ProductRepositoryInterface $productRepository,
         Configurable               $configurableProduct,
-        Product                    $modelProduct
-    ){
+        Product                    $modelProduct,
+        ConfigHelper               $configHelper
+    ) {
         $this->attribute = $attribute;
         $this->repository = $repository;
         $this->productRepository = $productRepository;
         $this->configurableProduct = $configurableProduct;
         $this->modelProduct = $modelProduct;
+        $this->configHelper = $configHelper;
     }
 
     /**
@@ -88,12 +95,13 @@ class ProductsOptions
      */
     public function getDescription(array $superAttributes): string
     {
+        $variantSellerCode = $this->configHelper->getAttrVariantSeller();
         $seller = "";
         foreach ($superAttributes as $key => $superAttribute) {
             $model = $this->attribute->load($key);
-            $code = $model->getAttributeCode();
+            $code  = $model->getAttributeCode();
 
-            if ($code == self::CODE) {
+            if ($code == $variantSellerCode) {
                 $options = $this->repository->get($code)->getOptions();
 
                 foreach ($options as $option) {
@@ -113,15 +121,15 @@ class ProductsOptions
      */
     public function getSellerFantasy(int $sellerCode): string
     {
-        $seller = "";
-        $options = $this->repository->get(self::CODE)->getOptions();
+        $variantSellerCode = $this->configHelper->getAttrVariantSeller();
+        $seller  = "";
+        $options = $this->repository->get($variantSellerCode)->getOptions();
 
         foreach ($options as $option) {
             if ($option->getValue() == $sellerCode) {
                 $seller = $option->getLabel();
             }
         }
-
 
         return $seller;
     }

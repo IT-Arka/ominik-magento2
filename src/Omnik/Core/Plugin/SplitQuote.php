@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Omnik\Core\Plugin;
 
+use Omnik\Core\Logger\Logger;
 use Omnik\Core\Model\HandleChildOrders;
 use Magento\Framework\Event\ManagerInterface as EventManager;
 use Magento\Quote\Api\Data\CartInterface;
@@ -32,6 +33,7 @@ class SplitQuote
     /** @var EventManager */
     private EventManager $eventManager;
     private HandleChildOrders $handleChildOrders;
+    private Logger $_logger;
 
     /**
      * @param CartRepositoryInterface $quoteRepository
@@ -40,6 +42,7 @@ class SplitQuote
      * @param OrderRepositoryInterface $orderRepository
      * @param EventManager $eventManager
      * @param HandleChildOrders $handleChildOrders
+     * @param Logger $logger
      */
     public function __construct(
         CartRepositoryInterface $quoteRepository,
@@ -47,7 +50,8 @@ class SplitQuote
         QuoteHandlerInterface $quoteHandler,
         OrderRepositoryInterface $orderRepository,
         EventManager $eventManager,
-        HandleChildOrders $handleChildOrders
+        HandleChildOrders $handleChildOrders,
+        Logger $logger
     ) {
         $this->quoteRepository = $quoteRepository;
         $this->quoteFactory = $quoteFactory;
@@ -55,6 +59,7 @@ class SplitQuote
         $this->orderRepository = $orderRepository;
         $this->eventManager = $eventManager;
         $this->handleChildOrders = $handleChildOrders;
+        $this->_logger = $logger;
     }
 
     /**
@@ -68,7 +73,7 @@ class SplitQuote
         QuoteManagement $subject,
         $result,
         $cartId,
-        ?PaymentInterface $payment = null
+        PaymentInterface $payment = null
     ) {
         if (!$result) {
             return $result;
@@ -112,7 +117,12 @@ class SplitQuote
 
             $this->eventManager->dispatch('omnik_omnik_submit_order', ['orders' => $childOrders]);
 
-        } catch (\Exception $e) {}
+        } catch (\Exception $e) {
+            $this->_logger->error(
+                'Omnik SplitQuote (split step) failed: ' . $e->getMessage(),
+                ['cart_id' => $cartId, 'order_id' => $result]
+            );
+        }
 
         try {
             $currentQuote->setIsActive(false);
@@ -121,7 +131,12 @@ class SplitQuote
             $this->saveSplitData($result, SplitOrderInterface::SPLIT_ORDER_TYPE_PARENT);
             $parentOrder = $this->orderRepository->get($result);
             $this->updateChildStatus($parentOrder);
-        } catch (\Exception $e) {}
+        } catch (\Exception $e) {
+            $this->_logger->error(
+                'Omnik SplitQuote (parent finalize) failed: ' . $e->getMessage(),
+                ['cart_id' => $cartId, 'order_id' => $result]
+            );
+        }
 
         return $result;
     }

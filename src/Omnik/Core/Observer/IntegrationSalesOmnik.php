@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Omnik\Core\Observer;
 
 use Exception;
+use Omnik\Core\Helper\Config as ConfigHelper;
 use Omnik\Core\Logger\Logger;
 use Omnik\Core\Model\Integration\Params;
 use Omnik\Core\Model\Integration\Order\SendStatusNew;
@@ -62,6 +63,11 @@ class IntegrationSalesOmnik implements ObserverInterface
     private SearchCriteriaBuilder $searchCriteriaBuilder;
 
     /**
+     * @var ConfigHelper
+     */
+    private ConfigHelper $_configHelper;
+
+    /**
      * @param Params $params
      * @param SendStatusNew $sendStatusNew
      * @param ProductSellerInterface $productSellerInterface
@@ -70,6 +76,7 @@ class IntegrationSalesOmnik implements ObserverInterface
      * @param StoreManagerInterface $storeManager
      * @param OrderRepositoryInterface $orderRepository
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
+     * @param ConfigHelper $configHelper
      */
     public function __construct(
         Params                     $params,
@@ -79,7 +86,8 @@ class IntegrationSalesOmnik implements ObserverInterface
         Logger                     $salesLogger,
         StoreManagerInterface      $storeManager,
         OrderRepositoryInterface   $orderRepository,
-        SearchCriteriaBuilder      $searchCriteriaBuilder
+        SearchCriteriaBuilder      $searchCriteriaBuilder,
+        ConfigHelper               $configHelper
     ) {
         $this->params = $params;
         $this->sendStatusNew = $sendStatusNew;
@@ -89,6 +97,7 @@ class IntegrationSalesOmnik implements ObserverInterface
         $this->storeManager = $storeManager;
         $this->orderRepository = $orderRepository;
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
+        $this->_configHelper = $configHelper;
     }
 
     /**
@@ -166,9 +175,17 @@ class IntegrationSalesOmnik implements ObserverInterface
      */
     public function getTenant($order)
     {
-        $item = current($order->getItems())->getData();
-        $product = $this->productRepositoryInterface->get($item['sku']);
-        return $product->getCustomAttribute('tenant')->getValue();
+        $storeId   = (int)$order->getStoreId();
+        $attrCode  = $this->_configHelper->getAttrTenant($storeId);
+        $item      = current($order->getItems())->getData();
+        $product   = $this->productRepositoryInterface->get($item['sku']);
+        $tenantVal = $product->getCustomAttribute($attrCode)?->getValue();
+        if (empty($tenantVal)) {
+            throw new NoSuchEntityException(
+                __('Produto "%1" sem atributo "%2" (Tenant) preenchido.', $item['sku'], $attrCode)
+            );
+        }
+        return $tenantVal;
     }
 
     /**
@@ -182,17 +199,19 @@ class IntegrationSalesOmnik implements ObserverInterface
                 return $this->integrateOrder($order);
             }
 
-            $return = true;
             $orders = $this->getChildOrdersToReintegrate($order);
+
+            // Pedido único (não-split): não tem filhos, então reintegra ele mesmo.
+            if (empty($orders)) {
+                return $this->integrateOrder($order);
+            }
+
+            $return = true;
             foreach ($orders as $orderChild) {
                 $response = $this->integrateOrder($orderChild);
                 if (!isset($response['orderData']['id'])) {
                     $return = false;
                 }
-            }
-
-            if($return){
-                return $return;
             }
 
             return $return;

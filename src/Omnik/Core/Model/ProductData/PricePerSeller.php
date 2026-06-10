@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Omnik\Core\Model\ProductData;
 
 use Omnik\Core\Api\PricePerSellerInterface;
+use Omnik\Core\Helper\Config as ConfigHelper;
 use Omnik\Core\Model\CalculatePrice;
 use Omnik\Core\Model\Stock;
 use Magento\Catalog\Api\Data\ProductInterface;
@@ -67,6 +68,11 @@ class PricePerSeller implements PricePerSellerInterface
      * @param PriceProducts $priceProducts
      * @param Json $json
      */
+    /**
+     * @var ConfigHelper
+     */
+    private ConfigHelper $_configHelper;
+
     public function __construct(
         Request $request,
         CustomerSession $customerSession,
@@ -75,7 +81,8 @@ class PricePerSeller implements PricePerSellerInterface
         SearchCriteriaBuilder $searchCriteriaBuilder,
         Stock $stock,
         PriceProducts $priceProducts,
-        Json $json
+        Json $json,
+        ConfigHelper $configHelper
     ) {
         $this->request = $request;
         $this->customerSession = $customerSession;
@@ -85,6 +92,7 @@ class PricePerSeller implements PricePerSellerInterface
         $this->stock = $stock;
         $this->priceProducts = $priceProducts;
         $this->json = $json;
+        $this->_configHelper = $configHelper;
     }
 
     /**
@@ -122,8 +130,8 @@ class PricePerSeller implements PricePerSellerInterface
                 continue;
             }
 
-            $swatch = (int) $product->getCustomAttribute("variant_embalagem")->getValue();
-            $seller = (int) $product->getCustomAttribute("variant_seller")->getValue();
+            $swatch = (int)($product->getCustomAttribute($this->_configHelper->getAttrVariantEmbalagem())?->getValue() ?? 0);
+            $seller = (int)($product->getCustomAttribute($this->_configHelper->getAttrVariantSeller())?->getValue() ?? 0);
 
             if ($swatchId == $swatch && $seller == $sellerId) {
                 $result['price'] = $this->priceProducts->getResultPrices(PriceProducts::TYPE_PRICE, $product);

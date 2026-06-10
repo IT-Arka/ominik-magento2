@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Omnik\Core\Model\Service;
 
+use Omnik\Core\Helper\Config as ConfigHelper;
 use Omnik\Core\Helper\Product\Data;
 use Omnik\Core\Model\Management\CreateProduct;
 use Magento\Catalog\Api\Data\ProductAttributeInterface;
@@ -66,6 +67,11 @@ class Product
     private SearchCriteriaBuilder $searchCriteriaBuilder;
 
     /**
+     * @var ConfigHelper
+     */
+    private ConfigHelper $_configHelper;
+
+    /**
      * @param AttributeOptionInterfaceFactory $optionFactory
      * @param AttributeOptionManagementInterface $optionManagement
      * @param SourceItemsSaveInterface $sourceItemsSaveInterface
@@ -74,6 +80,7 @@ class Product
      * @param Data $productHelper
      * @param CreateProduct $createProduct
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
+     * @param ConfigHelper $configHelper
      */
     public function __construct(
         AttributeOptionInterfaceFactory $optionFactory,
@@ -83,7 +90,8 @@ class Product
         ProductRepositoryInterface $productRepository,
         Data $productHelper,
         CreateProduct $createProduct,
-        SearchCriteriaBuilder $searchCriteriaBuilder
+        SearchCriteriaBuilder $searchCriteriaBuilder,
+        ConfigHelper $configHelper
     ) {
         $this->optionFactory = $optionFactory;
         $this->optionManagement = $optionManagement;
@@ -93,6 +101,7 @@ class Product
         $this->productHelper = $productHelper;
         $this->createProduct = $createProduct;
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
+        $this->_configHelper = $configHelper;
     }
 
     /**
@@ -228,7 +237,7 @@ class Product
 
             $dataProductSimple = [
                 'name' => $name,
-                'brand' => $brandId,
+                $this->_configHelper->getAttrBrand() => $brandId,
                 'category_ids' => $idsCategory,
                 'supplier_name' => $supplierName,
                 'supplier_document' => $supplierDocument
@@ -251,7 +260,9 @@ class Product
         $data['name'] = $productData['productData']['productName'];
         $data['description'] = $productData['productData']['descriptionHTML'];
         $data['short_description'] = $productData['productData']['description'];
-        $data['brand'] = $this->getOptionIdBrand($productData['productData']['brand']);
+        $data[$this->_configHelper->getAttrBrand()] = $this->getOptionIdBrand(
+            $productData['productData']['brand']
+        );
 
         $data['category_ids'] = $this->createProduct->getIdsCategory(
             (int) $productData['categories'][0]['id'],
@@ -277,7 +288,10 @@ class Product
      */
     public function getOptionIdBrand($brandLabel): int
     {
-        return $this->productHelper->getOptionIdAttributeByLabel('brand', $brandLabel);
+        return $this->productHelper->getOptionIdAttributeByLabel(
+            $this->_configHelper->getAttrBrand(),
+            $brandLabel
+        );
     }
 
     /**
@@ -314,7 +328,9 @@ class Product
      */
     public function getSkuProduct(string $skuIdOmnik)
     {
-        $searchCriteria = $this->searchCriteriaBuilder->addFilter('sku_id_omnik', $skuIdOmnik)->create();
+        $searchCriteria = $this->searchCriteriaBuilder
+            ->addFilter($this->_configHelper->getAttrSkuId(), $skuIdOmnik)
+            ->create();
         $productList = $this->productRepository->getList($searchCriteria);
 
         if ($productList->getTotalCount() > 0) {

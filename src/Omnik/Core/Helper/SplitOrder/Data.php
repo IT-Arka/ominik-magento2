@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Omnik\Core\Helper\SplitOrder;
 
+use Omnik\Core\Helper\Config as ConfigHelper;
 use Omnik\Core\Model\Carrier\Method;
 use Omnik\Core\Api\SplitOrderInterface;
 use Omnik\Core\Model\Repositories\OmnikFreightRatesRepository;
@@ -31,6 +32,7 @@ class Data extends AbstractHelper
         private readonly ProductRepositoryInterface  $productRepository,
         private readonly OmnikFreightRatesRepository $omnikFreightRatesRepository,
         private readonly Json                        $json,
+        private readonly ConfigHelper                $configHelper,
         public readonly Context                      $context
     ) {
         parent::__construct($context);
@@ -53,12 +55,12 @@ class Data extends AbstractHelper
      */
     public function getTenantByProductSku(string $sku): string
     {
-        $tenant = '';
-        $product = $this->productRepository->get($sku);
+        $attrCode = $this->configHelper->getAttrTenant();
+        $product  = $this->productRepository->get($sku);
         if ($product->getId()) {
-            $tenant = $product->getCustomAttribute('tenant')->getValue();
+            return (string)($product->getCustomAttribute($attrCode)?->getValue() ?? '');
         }
-        return $tenant;
+        return '';
     }
 
     /**
