@@ -8,6 +8,7 @@
                 <item name="EmbalagemImport" xsi:type="object">Omnik\Core\Console\Variants\ImportVariantEmbalagem</item>
                 <item name="VariantColorImport" xsi:type="object">Omnik\Core\Console\Variants\ImportVariantColor</item>
                 <item name="VariantTamanhoImport" xsi:type="object">Omnik\Core\Console\Variants\ImportVariantTamanho</item>
+                <item name="VariantSyncAttributes" xsi:type="object">Omnik\Core\Console\Variants\SyncVariantAttributes</item>
             </argument>
         </arguments>
     </type>
@@ -282,4 +283,5 @@
     </virtualType>
 
     <preference for="Omnik\Core\Api\Data\StatusMappingInterface" type="Omnik\Core\Model\StatusMapping"/>
+    <preference for="Omnik\Core\Api\Data\VariantAttributeMapInterface" type="Omnik\Core\Model\VariantAttributeMap"/>
 </config>

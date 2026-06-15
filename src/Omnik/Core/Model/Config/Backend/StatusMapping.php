@@ -65,8 +65,8 @@ class StatusMapping extends Value
         StatusMappingFactory $statusMappingFactory,
         StatusMappingResource $statusMappingResource,
         StatusMappingCollectionFactory $statusMappingCollectionFactory,
-        AbstractResource $resource = null,
-        AbstractDb $resourceCollection = null,
+        ?AbstractResource $resource = null,
+        ?AbstractDb $resourceCollection = null,
         array $data = []
     ) {
         $this->serializer = $serializer;

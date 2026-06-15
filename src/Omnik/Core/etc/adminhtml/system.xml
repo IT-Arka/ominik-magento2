@@ -93,8 +93,8 @@
             </group>
 
             <group id="product_attributes" translate="label" type="text" sortOrder="20" showInDefault="1" showInWebsite="0" showInStore="1">
-                <label>Mapeamento de Atributos de Produto</label>
-                <comment>Selecione qual atributo do seu catálogo corresponde a cada campo Omnik. Os defaults são os atributos criados pelo próprio módulo.</comment>
+                <label>Mapeamento de Atributos Core (Sistema)</label>
+                <comment><![CDATA[Campos <b>estruturais</b> do módulo: dados de negócio (tenant, sku, marca, código ERP) e as <b>4 variantes core</b> (seller, cor, embalagem, tamanho) das quais o storefront, os swatches e o split de pedido dependem com tratamento dedicado.<br/><b>Variantes adicionais da Omnik</b> (fragrância, voltagem, watts, etc.) NÃO ficam aqui — configure-as no grupo <b>"Mapeamento de Variantes Adicionais"</b> abaixo.]]></comment>
                 <field id="attr_tenant" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="1">
                     <label>Atributo: Tenant (Seller)</label>
                     <comment>Identifica o vendedor/seller dono do produto. Usado no split de pedidos e no payload enviado à Omnik.</comment>
@@ -142,6 +142,17 @@
                     <comment>Atributo de marca do produto exibido no buybox de variações.</comment>
                     <config_path>omnik_integration/product_attributes/attr_brand</config_path>
                     <source_model>Omnik\Core\Model\Config\Source\ProductAttributes</source_model>
+                </field>
+            </group>
+
+            <group id="variant_attribute_map" translate="label comment" type="text" sortOrder="25" showInDefault="1" showInWebsite="0" showInStore="1">
+                <label>Mapeamento de Variantes Adicionais (Dinâmico)</label>
+                <comment><![CDATA[Para as variantes da Omnik <b>além das 4 core</b> (ex.: fragrância, voltagem, watts, gênero). Cada linha aponta a variante Omnik para um atributo de produto do Magento.<br/><b>Não é necessário</b> repetir cor/tamanho/embalagem/seller aqui — essas já são tratadas no grupo "Mapeamento de Atributos Core" acima.<br/>Variantes não listadas usam automaticamente o atributo <b>variant_&lt;nome&gt;</b> (plug-and-play). Rode <b>bin/magento omnik:variants:sync-attributes</b> para criar todos os atributos da Omnik antes de mapear.<br/><i>Toda variante importada vira super attribute do produto e aparece como swatch no storefront automaticamente.</i>]]></comment>
+                <field id="mapping_table" translate="label comment" sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="1">
+                    <label>Variante Omnik → Atributo Magento</label>
+                    <frontend_model>Omnik\Core\Block\Adminhtml\System\Config\Form\Field\VariantAttributeMap</frontend_model>
+                    <backend_model>Omnik\Core\Model\Config\Backend\VariantAttributeMap</backend_model>
+                    <config_path>omnik_integration/variant_attribute_map/mapping_table</config_path>
                 </field>
             </group>
         </section>

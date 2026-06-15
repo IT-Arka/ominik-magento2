@@ -73,7 +73,7 @@ class SplitQuote
         QuoteManagement $subject,
         $result,
         $cartId,
-        PaymentInterface $payment = null
+        ?PaymentInterface $payment = null
     ) {
         if (!$result) {
             return $result;

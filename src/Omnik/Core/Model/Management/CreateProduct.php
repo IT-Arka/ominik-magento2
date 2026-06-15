@@ -30,6 +30,7 @@ use Magento\Eav\Api\Data\AttributeOptionInterfaceFactory;
 use Omnik\Core\Model\SellerFactory;
 use Omnik\Core\Logger\Logger;
 use Omnik\Core\Helper\Config as ConfigHelper;
+use Omnik\Core\Helper\VariantAttributeMap as VariantMapHelper;
 
 class CreateProduct
 {
@@ -91,7 +92,8 @@ class CreateProduct
         private AttributeOptionInterfaceFactory      $optionFactory,
         private SellerFactory                        $sellerFactory,
         private Logger                               $logger,
-        private readonly ConfigHelper                 $configHelper
+        private readonly ConfigHelper                 $configHelper,
+        private readonly VariantMapHelper             $variantMapHelper
     ) {
         $this->variantNameData = [
             'EMBALAGEM' => $this->configHelper->getAttrVariantEmbalagem(),
@@ -344,17 +346,21 @@ class CreateProduct
             $product->setCustomAttribute(self::ATTRIBUTE_WIDTH_PACKAGE, (float)$productModeratedData['packageDimensionData']['width']);
             $product->setCustomAttribute(self::ATTRIBUTE_HEIGHT_PACKAGE, (float)$productModeratedData['packageDimensionData']['height']);
             $product->setCustomAttribute(self::ATTRIBUTE_LENGHT_PACKAGE, (float)$productModeratedData['packageDimensionData']['depth']);
-            //attributes variants
+            //attributes variants — resolve QUALQUER variante da Omnik via de-para dinâmico
             foreach ($productData['attributes'] as $attribute) {
-                if (array_key_exists($attribute['name'], $this->variantNameData)) {
-
-                    $optionId = $this->productHelper->getOptionIdAttributeByLabel(
-                        $this->variantNameData[$attribute['name']],
-                        $attribute['descriptionValue']
-                    );
-
-                    $product->setCustomAttribute($this->variantNameData[$attribute['name']], $optionId);
+                $variantName = (string)($attribute['name'] ?? '');
+                // SELLER é tratado separadamente logo abaixo
+                if ($variantName === '' || strtoupper($variantName) === 'SELLER') {
+                    continue;
                 }
+
+                $attributeCode = $this->variantMapHelper->getAttributeCode($variantName);
+                $optionId = $this->productHelper->getOptionIdAttributeByLabel(
+                    $attributeCode,
+                    $attribute['descriptionValue']
+                );
+
+                $product->setCustomAttribute($attributeCode, $optionId);
             }
 
             $seller = $this->setEavSeller($productModeratedData['skus'][0]['tenant']);

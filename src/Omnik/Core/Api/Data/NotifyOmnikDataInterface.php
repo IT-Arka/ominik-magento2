@@ -25,7 +25,7 @@ interface NotifyOmnikDataInterface
      * @param string|null $errorBody
      * @return void
      */
-    public function changeStatusNotify(int $id, int $statusId = self::STATUS_INTEGRATED, string $errorBody = null): void;
+    public function changeStatusNotify(int $id, int $statusId = self::STATUS_INTEGRATED, ?string $errorBody = null): void;
 
     public function changeAttempts(int $id): void;
 }

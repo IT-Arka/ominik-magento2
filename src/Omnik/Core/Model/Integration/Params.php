@@ -17,6 +17,7 @@ use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\Customer\Api\CustomerRepositoryInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Serialize\Serializer\Json;
+use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use Magento\Sales\Api\Data\OrderInterface;
 use Magento\Sales\Model\Order;
 use Magento\Store\Model\StoreManagerInterface;
@@ -24,6 +25,11 @@ use Magento\Store\Model\StoreManagerInterface;
 class Params
 {
     public const TIME_CONFIG_DATE = "T00:00:00.000000";
+
+    /**
+     * Formato de data/hora esperado pela Omnik (sem offset de timezone).
+     */
+    public const DATETIME_FORMAT = "Y-m-d\TH:i:s.u";
 
     public const GETNET_BOLETO = 'getnet_paymentmagento_boleto';
     public const GETNET_CARD = 'getnet_paymentmagento_cc';
@@ -53,9 +59,26 @@ class Params
         private readonly StoreManagerInterface       $storeManager,
         private readonly ShippingAmount              $shippingAmount,
         private readonly OrderFactory                $orderFactory,
-        private readonly OrderRepositoryInterface    $orderRepository
+        private readonly OrderRepositoryInterface    $orderRepository,
+        private readonly TimezoneInterface           $timezone
     ) {
 
+    }
+
+    /**
+     * Converte uma data armazenada em UTC para o fuso horário da loja,
+     * preservando a hora real do evento, no formato esperado pela Omnik.
+     *
+     * @param string|null $date
+     * @return string
+     */
+    private function formatDateTime(?string $date): string
+    {
+        if (empty($date)) {
+            return '';
+        }
+
+        return $this->timezone->date(new \DateTime($date))->format(self::DATETIME_FORMAT);
     }
 
     /**
@@ -72,10 +95,10 @@ class Params
             $customer = $this->getCustomer($order->getCustomerId());
             $address  = $order->getShippingAddress();
 
-            $params["createDate"] = date('Y-m-d', strtotime($order->getCreatedAt())) . self::TIME_CONFIG_DATE;
-            $params["lastUpdate"] = date('Y-m-d', strtotime($order->getUpdatedAt())) . self::TIME_CONFIG_DATE;
+            $params["createDate"] = $this->formatDateTime($order->getCreatedAt());
+            $params["lastUpdate"] = $this->formatDateTime($order->getUpdatedAt());
             $params["tenant"] = $this->getOrderTenant($order);
-            $params["orderData"]["orderDate"] = date('Y-m-d', strtotime($order->getCreatedAt())) . self::TIME_CONFIG_DATE;
+            $params["orderData"]["orderDate"] = $this->formatDateTime($order->getCreatedAt());
 
             $parentOrder = $this->getParentOrder($order);
             $params["marketplaceData"]["marketPlaceId"] = $order->getIncrementId();
@@ -223,7 +246,7 @@ class Params
     {
         $params = [];
         try {
-            $params["date"] = date('Y-m-d', strtotime($order->getUpdatedAt())) . self::TIME_CONFIG_DATE;
+            $params["date"] = $this->formatDateTime($order->getUpdatedAt());
             return $params;
         } catch (\Exception $e) {
             $this->logger->info($e->getMessage());
