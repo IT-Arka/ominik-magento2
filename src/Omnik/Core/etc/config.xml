@@ -11,7 +11,24 @@
                 <url_freight>https://api.sandbox.omnik.io/v1/freight</url_freight>
                 <timeout>300</timeout>
                 <log_requests>1</log_requests>
+                <boleto_extra_days>3</boleto_extra_days>
             </general>
+            <address_mapping>
+                <street_index_address>0</street_index_address>
+                <street_index_number>1</street_index_number>
+                <street_index_complement>2</street_index_complement>
+                <street_index_neighborhood>3</street_index_neighborhood>
+            </address_mapping>
+            <product_attributes>
+                <attr_tenant>tenant</attr_tenant>
+                <attr_sku_id>sku_id_omnik</attr_sku_id>
+                <attr_variant_seller>variant_seller</attr_variant_seller>
+                <attr_variant_color>variant_color</attr_variant_color>
+                <attr_variant_embalagem>variant_embalagem</attr_variant_embalagem>
+                <attr_variant_tamanho>variant_tamanho</attr_variant_tamanho>
+                <attr_erp_code>erp_code</attr_erp_code>
+                <attr_brand>brand</attr_brand>
+            </product_attributes>
         </omnik_integration>
         <omnik_grid_product_integration>
             <grid>

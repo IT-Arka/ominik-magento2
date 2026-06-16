@@ -3,6 +3,7 @@
 namespace Omnik\Core\Console\Variants;
 
 use Exception;
+use Omnik\Core\Helper\Config as ConfigHelper;
 use Omnik\Core\Model\Integration\Variant\GetValueByVariant;
 use Magento\Catalog\Api\Data\ProductAttributeInterface;
 use Magento\Eav\Api\AttributeOptionManagementInterface;
@@ -47,24 +48,32 @@ class ImportVariantEmbalagem extends Command
     private Config $eavConfig;
 
     /**
+     * @var ConfigHelper
+     */
+    private ConfigHelper $configHelper;
+
+    /**
      * @param State $state
      * @param GetValueByVariant $getValueByVariant
      * @param AttributeOptionManagementInterface $optionManagement
      * @param AttributeOptionInterfaceFactory $optionFactory
      * @param Config $eavConfig
+     * @param ConfigHelper $configHelper
      */
     public function __construct(
         State $state,
         GetValueByVariant $getValueByVariant,
         AttributeOptionManagementInterface $optionManagement,
         AttributeOptionInterfaceFactory $optionFactory,
-        Config $eavConfig
+        Config $eavConfig,
+        ConfigHelper $configHelper
     ) {
         $this->state = $state;
         $this->getValueByVariant = $getValueByVariant;
         $this->optionManagement = $optionManagement;
         $this->optionFactory = $optionFactory;
         $this->eavConfig = $eavConfig;
+        $this->configHelper = $configHelper;
         parent::__construct();
     }
 
@@ -107,9 +116,10 @@ class ImportVariantEmbalagem extends Command
             }
         }
 
+        $attributeCode = $this->configHelper->getAttrVariantEmbalagem();
         $attributeData = $this->eavConfig->getAttribute(
             ProductAttributeInterface::ENTITY_TYPE_CODE,
-            self::ATTRIBUTE_CODE_VARIANT_EMBALAGEM,
+            $attributeCode,
         )->getSource()->getAllOptions();
 
         $optionLabelExistData = array_column($attributeData, 'label');
@@ -125,7 +135,7 @@ class ImportVariantEmbalagem extends Command
             try {
                 $this->optionManagement->add(
                     ProductAttributeInterface::ENTITY_TYPE_CODE,
-                    self::ATTRIBUTE_CODE_VARIANT_EMBALAGEM,
+                    $attributeCode,
                     $option
                 );
             } catch (\Exception $e) {

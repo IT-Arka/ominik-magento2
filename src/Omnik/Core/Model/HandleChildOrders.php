@@ -2,6 +2,8 @@
 
 namespace Omnik\Core\Model;
 
+use Omnik\Core\Helper\Config as ConfigHelper;
+use Omnik\Core\Logger\Logger;
 use Omnik\Core\Model\Integration\Sales\Approvation;
 use Omnik\Core\Api\SplitOrderInterface;
 use Omnik\Core\Model\Order\ChildOrderPayment;
@@ -31,6 +33,7 @@ class HandleChildOrders
     /** @var ChildOrderPayment */
     private ChildOrderPayment $childOrderPayment;
     private Approvation $integrationApprovation;
+    private Logger $_logger;
 
     /**
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
@@ -42,6 +45,8 @@ class HandleChildOrders
      * @param ProductRepositoryInterface $productRepository
      * @param GetOrder $getOrder
      * @param OrderFactory $orderFactory
+     * @param ConfigHelper $configHelper
+     * @param Logger $logger
      */
     public function __construct(
         SearchCriteriaBuilder                       $searchCriteriaBuilder,
@@ -52,7 +57,9 @@ class HandleChildOrders
         Approvation                                 $integrationApprovation,
         private readonly ProductRepositoryInterface $productRepository,
         private readonly GetOrder                   $getOrder,
-        private readonly OrderFactory               $orderFactory
+        private readonly OrderFactory               $orderFactory,
+        private readonly ConfigHelper               $configHelper,
+        Logger                                      $logger
     ) {
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
         $this->filterBuilder = $filterBuilder;
@@ -60,6 +67,7 @@ class HandleChildOrders
         $this->filterGroup = $filterGroup;
         $this->childOrderPayment = $childOrderPayment;
         $this->integrationApprovation = $integrationApprovation;
+        $this->_logger = $logger;
     }
 
     /**
@@ -118,6 +126,11 @@ class HandleChildOrders
                 }
 
             } catch (\Exception $e) {
+                $this->_logger->error(
+                    'Omnik HandleChildOrders failed for order '
+                    . $order->getIncrementId() . ': ' . $e->getMessage(),
+                    ['exception' => $e, 'parent_order_id' => $parentOrderId]
+                );
             }
         }
     }
@@ -144,8 +157,16 @@ class HandleChildOrders
      */
     public function getTenant($order)
     {
-        $item = current($order->getItems())->getData();
-        $product = $this->productRepository->get($item['sku']);
-        return $product->getCustomAttribute('tenant')->getValue();
+        $storeId   = (int)$order->getStoreId();
+        $attrCode  = $this->configHelper->getAttrTenant($storeId);
+        $item      = current($order->getItems())->getData();
+        $product   = $this->productRepository->get($item['sku']);
+        $tenantVal = $product->getCustomAttribute($attrCode)?->getValue();
+        if (empty($tenantVal)) {
+            throw new \RuntimeException(
+                sprintf('Produto "%s" sem atributo "%s" (Tenant) preenchido.', $item['sku'], $attrCode)
+            );
+        }
+        return $tenantVal;
     }
 }

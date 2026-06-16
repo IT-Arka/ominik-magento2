@@ -65,10 +65,10 @@ interface QuoteHandlerInterface
     /**
      * @param Quote $split
      * @param string $paymentMethod
-     * @param PaymentInterface $payment
+     * @param PaymentInterface|null $payment
      * @return QuoteHandlerInterface
      */
-    public function setPaymentMethod(Quote $split, string $paymentMethod, PaymentInterface $payment): QuoteHandlerInterface;
+    public function setPaymentMethod(Quote $split, string $paymentMethod, ?PaymentInterface $payment = null): QuoteHandlerInterface;
 
     /**
      * @param Quote $split

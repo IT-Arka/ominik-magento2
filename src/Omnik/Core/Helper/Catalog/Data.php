@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Omnik\Core\Helper\Catalog;
 
+use Omnik\Core\Helper\Config as ConfigHelper;
 use Omnik\Core\Helper\Data as QuoteHelper;
 use Magento\Catalog\Api\ProductAttributeRepositoryInterface;
 use Magento\Catalog\Api\ProductRepositoryInterface;
@@ -13,18 +14,18 @@ use Magento\Framework\Exception\NoSuchEntityException;
 
 class Data extends AbstractHelper
 {
-    public const ATTRIBUTE_CODE_VARIANT_SELLER = 'variant_seller';
-
     /**
      * @param ProductRepositoryInterface $productRepository
      * @param ProductAttributeRepositoryInterface $productAttributeRepository
      * @param QuoteHelper $quoteHelper
+     * @param ConfigHelper $configHelper
      * @param Context $context
      */
     public function __construct(
         private readonly ProductRepositoryInterface          $productRepository,
         private readonly ProductAttributeRepositoryInterface $productAttributeRepository,
         private readonly QuoteHelper                         $quoteHelper,
+        private readonly ConfigHelper                        $configHelper,
         public readonly Context                              $context
     ) {
         parent::__construct($context);
@@ -37,8 +38,9 @@ class Data extends AbstractHelper
      */
     public function getLabelAttributeByOptionId(int $optionId)
     {
-        $attributeData = $this->productAttributeRepository->get(self::ATTRIBUTE_CODE_VARIANT_SELLER);
-        $optionLabel = '';
+        $attrCode      = $this->configHelper->getAttrVariantSeller();
+        $attributeData = $this->productAttributeRepository->get($attrCode);
+        $optionLabel   = '';
 
         if ($attributeData->usesSource()) {
             $optionLabel = $attributeData->getSource()->getOptionText($optionId);
@@ -104,7 +106,8 @@ class Data extends AbstractHelper
      */
     public function getSellerAttributeId($simpleProduct)
     {
-        return $simpleProduct->getResource()->getAttribute('variant_seller')->getAttributeId();
+        $attrCode = $this->configHelper->getAttrVariantSeller();
+        return $simpleProduct->getResource()->getAttribute($attrCode)->getAttributeId();
     }
 
     /**
@@ -129,17 +132,22 @@ class Data extends AbstractHelper
         $_children = $configProduct->getTypeInstance()->getUsedProducts($configProduct);
         $seller = [];
         $ids = [];
+        $variantSellerAttr = $this->configHelper->getAttrVariantSeller();
         foreach ($_children as $child) {
-            $sellerAttribute = $child->getCustomAttribute('variant_seller');
-            if (isset($seller[$sellerAttribute->getValue()])) {
-                if ((float)$child->getFinalPrice() <= $seller[$sellerAttribute->getValue()]) {
-                    $seller[$sellerAttribute->getValue()] = $child->getFinalPrice();
-                    $ids[$sellerAttribute->getValue()] = $child->getId();
+            $sellerAttribute = $child->getCustomAttribute($variantSellerAttr);
+            if (!$sellerAttribute) {
+                continue;
+            }
+            $sellerVal = $sellerAttribute->getValue();
+            if (isset($seller[$sellerVal])) {
+                if ((float)$child->getFinalPrice() <= $seller[$sellerVal]) {
+                    $seller[$sellerVal] = $child->getFinalPrice();
+                    $ids[$sellerVal]    = $child->getId();
                 }
                 continue;
             }
-            $seller[$sellerAttribute->getValue()] = (float)$child->getFinalPrice();
-            $ids[$sellerAttribute->getValue()] = $child->getId();
+            $seller[$sellerVal] = (float)$child->getFinalPrice();
+            $ids[$sellerVal]    = $child->getId();
         }
         return array_unique($ids);
     }
@@ -150,10 +158,12 @@ class Data extends AbstractHelper
      */
     public function getBrandName($simpleProduct)
     {
+        $attrCode   = $this->configHelper->getAttrBrand();
         $optionText = '';
-        $attr = $simpleProduct->getResource()->getAttribute('brand');
-        if ($attr->usesSource()) {
-            $optionText = $attr->getSource()->getOptionText($simpleProduct->getBrand());
+        $attr       = $simpleProduct->getResource()->getAttribute($attrCode);
+        if ($attr && $attr->usesSource()) {
+            $optionText = $attr->getSource()
+                ->getOptionText($simpleProduct->getData($attrCode));
         }
 
         return $optionText;

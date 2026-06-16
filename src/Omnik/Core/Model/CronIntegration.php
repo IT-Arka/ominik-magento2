@@ -40,14 +40,19 @@ class CronIntegration extends Value
     protected string $_runModelPath = '';
 
     /**
+     * @var Http
+     */
+    protected Http $httprequest;
+
+    /**
      * @param Context $context
      * @param Registry $registry
      * @param ScopeConfigInterface $config
      * @param TypeListInterface $cacheTypeList
      * @param ValueFactory $configValueFactory
-     * @param Http $httprequest
      * @param AbstractResource|null $resource
      * @param AbstractDb|null $resourceCollection
+     * @param Http $httprequest
      * @param string $runModelPath
      * @param array $data
      */
@@ -58,9 +63,9 @@ class CronIntegration extends Value
         \Magento\Framework\App\Cache\TypeListInterface $cacheTypeList,
         ValueFactory $configValueFactory,
         Http $httprequest,
+        $runModelPath = '',
         ?\Magento\Framework\Model\ResourceModel\AbstractResource $resource = null,
         ?\Magento\Framework\Data\Collection\AbstractDb $resourceCollection = null,
-        $runModelPath = '',
         array $data = []
     ) {
         $this->_runModelPath = $runModelPath;

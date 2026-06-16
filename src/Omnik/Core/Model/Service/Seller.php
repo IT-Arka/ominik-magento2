@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Omnik\Core\Model\Service;
 
+use Omnik\Core\Helper\Config as ConfigHelper;
 use Omnik\Core\Model\Repositories\SellerRepository;
 use Omnik\Core\Model\SellerFactory;
 use Magento\Catalog\Api\Data\ProductAttributeInterface;
@@ -57,6 +58,11 @@ class Seller
     private ProductAttributeRepositoryInterface $productAttributeRepository;
 
     /**
+     * @var ConfigHelper
+     */
+    private ConfigHelper $_configHelper;
+
+    /**
      * @param SellerFactory $sellerFactory
      * @param SellerRepository $sellerRepository
      * @param Json $json
@@ -64,15 +70,17 @@ class Seller
      * @param AttributeOptionInterfaceFactory $optionFactory
      * @param Config $eavConfig
      * @param ProductAttributeRepositoryInterface $productAttributeRepository
+     * @param ConfigHelper $configHelper
      */
     public function __construct(
-        SellerFactory $sellerFactory,
-        SellerRepository $sellerRepository,
-        Json $json,
-        AttributeOptionManagementInterface $optionManagement,
-        AttributeOptionInterfaceFactory $optionFactory,
-        Config $eavConfig,
-        ProductAttributeRepositoryInterface $productAttributeRepository
+        SellerFactory                       $sellerFactory,
+        SellerRepository                    $sellerRepository,
+        Json                                $json,
+        AttributeOptionManagementInterface  $optionManagement,
+        AttributeOptionInterfaceFactory     $optionFactory,
+        Config                              $eavConfig,
+        ProductAttributeRepositoryInterface $productAttributeRepository,
+        ConfigHelper                        $configHelper
     ) {
         $this->sellerFactory = $sellerFactory;
         $this->sellerRepository = $sellerRepository;
@@ -81,6 +89,7 @@ class Seller
         $this->optionFactory = $optionFactory;
         $this->eavConfig = $eavConfig;
         $this->productAttributeRepository = $productAttributeRepository;
+        $this->_configHelper = $configHelper;
     }
 
     /**
@@ -159,7 +168,7 @@ class Seller
     {
         $attributeData = $this->eavConfig->getAttribute(
             ProductAttributeInterface::ENTITY_TYPE_CODE,
-            self::ATTRIBUTE_CODE_VARIANT_SELLER,
+            $this->_configHelper->getAttrVariantSeller(),
         )->getSource()->getAllOptions();
 
         $optionLabelExistData = array_column($attributeData, 'label');
@@ -170,7 +179,7 @@ class Seller
 
             $this->optionManagement->add(
                 ProductAttributeInterface::ENTITY_TYPE_CODE,
-                self::ATTRIBUTE_CODE_VARIANT_SELLER,
+                $this->_configHelper->getAttrVariantSeller(),
                 $option
             );
         }
@@ -186,7 +195,9 @@ class Seller
      */
     public function updateSellerLabelAttribute(string $sellerLabelOld, string $sellerLabelNew)
     {
-        $attributeData = $this->productAttributeRepository->get(self::ATTRIBUTE_CODE_VARIANT_SELLER);
+        $attributeData = $this->productAttributeRepository->get(
+            $this->_configHelper->getAttrVariantSeller()
+        );
         $optionId = 0;
 
         if ($attributeData->usesSource()) {

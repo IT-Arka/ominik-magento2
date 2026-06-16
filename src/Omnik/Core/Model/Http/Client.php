@@ -381,8 +381,10 @@ use Psr\Log\LoggerInterface;
             }
             // Sends the request
 
-            $config = ['adapter' => \Laminas\Http\Client\Adapter\Curl::class,
-                            'sslverifypeer' => false];
+            $config = [
+                'adapter'       => \Laminas\Http\Client\Adapter\Curl::class,
+                'sslverifypeer' => $this->configHelper->isProductionMode((int)$storeId),
+            ];
 
             $client = new LaminasClient($requestUrl, $config);
             $client->setMethod($method);

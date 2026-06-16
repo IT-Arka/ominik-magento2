@@ -9,14 +9,15 @@ use Magento\Framework\App\Helper\AbstractHelper;
 use Magento\Framework\App\Helper\Context;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
-
+use Omnik\Core\Helper\Config as ConfigHelper;
 
 class Data extends AbstractHelper
 {
     public function __construct(
         Context $context,
         private readonly Product $product,
-        private readonly StoreManagerInterface $storeManager
+        private readonly StoreManagerInterface $storeManager,
+        private readonly ConfigHelper $configHelper
     ) {
         parent::__construct($context);
     }
@@ -65,21 +66,22 @@ class Data extends AbstractHelper
      */
     private function getProductsInfo(Product $product, int $qty): array
     {
-        $storeId = $this->storeManager->getStore()->getId();
-        $tenant = str_replace("OMPX", "", $product->getCustomAttribute('tenant')?->getValue());
+        $storeId      = (int)$this->storeManager->getStore()->getId();
+        $tenantAttr   = $this->configHelper->getAttrTenant($storeId);
+        $tenant       = str_replace("OMPX", "", $product->getCustomAttribute($tenantAttr)?->getValue());
 
-        $height = (float)$product->getCustomAttribute('height')?->getValue() ?? 1;
-        $length = (float)$product->getCustomAttribute('lenght')?->getValue() ?? 1;
-        $width = (float)$product->getCustomAttribute('width')?->getValue() ?? 1;
-        $weight = (float)$product->getWeight() ?? 1;
+        $height = (float)($product->getCustomAttribute('height')?->getValue() ?? 1);
+        $length = (float)($product->getCustomAttribute('lenght')?->getValue() ?? 1);
+        $width  = (float)($product->getCustomAttribute('width')?->getValue() ?? 1);
+        $weight = (float)($product->getWeight() ?? 1);
 
         $stockItem = $product->getExtensionAttributes()->getStockItem();
 
         $sku = str_replace("-" . $tenant, "", str_replace($storeId . "_", "", $product->getSku()));
 
         return [
-            'skuId' => $sku,
-            'sellerTenant' => $product->getCustomAttribute('tenant')?->getValue(),
+            'skuId'        => $sku,
+            'sellerTenant' => $product->getCustomAttribute($tenantAttr)?->getValue(),
             'stock' => $stockItem->getQty(),
             'quantity' => $qty,
             'height' => $height,
@@ -96,10 +98,11 @@ class Data extends AbstractHelper
      */
     public function getSellerName($simpleProduct)
     {
+        $attrCode   = $this->configHelper->getAttrVariantSeller();
         $optionText = '';
-        $attr = $simpleProduct->getResource()->getAttribute('variant_seller');
-        if ($attr->usesSource()) {
-            $optionText = $attr->getSource()->getOptionText($simpleProduct->getVariantSeller());
+        $attr       = $simpleProduct->getResource()->getAttribute($attrCode);
+        if ($attr && $attr->usesSource()) {
+            $optionText = $attr->getSource()->getOptionText($simpleProduct->getData($attrCode));
         }
 
         return $optionText;

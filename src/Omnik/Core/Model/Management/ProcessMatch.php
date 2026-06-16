@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Omnik\Core\Model\Management;
 
+use Omnik\Core\Helper\Config as ConfigHelper;
 use Omnik\Core\Helper\Product\Data;
+use Omnik\Core\Helper\VariantAttributeMap as VariantMapHelper;
 use Omnik\Core\Logger\Logger;
 use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\ConfigurableProduct\Helper\Product\Options\Factory;
@@ -26,14 +28,12 @@ class ProcessMatch
     public const POSITION_DEFAULT = 1;
 
     /**
+     * Mapa NOME_OMNIK => código de atributo Magento.
+     * Resolvido dinamicamente no construtor via ConfigHelper.
+     *
      * @var array|string[]
      */
-    private array $variantNameData = [
-        'EMBALAGEM' => self::ATTRIBUTE_CODE_VARIANT_EMBALAGEM,
-        'COR' => self::ATTRIBUTE_CODE_VARIANT_COR,
-        'TAMANHO' => self::ATTRIBUTE_CODE_VARIANT_TAMANHO,
-        'SELLER' => self::ATTRIBUTE_CODE_VARIANT_SELLER
-    ];
+    private array $variantNameData = [];
 
     /**
      * @var ProductRepositoryInterface
@@ -66,12 +66,24 @@ class ProcessMatch
     private Logger $logger;
 
     /**
+     * @var ConfigHelper
+     */
+    private ConfigHelper $_configHelper;
+
+    /**
+     * @var VariantMapHelper
+     */
+    private VariantMapHelper $_variantMapHelper;
+
+    /**
      * @param ProductRepositoryInterface $productRepository
      * @param Data $productHelper
      * @param Factory $optionsConfigurableFactory
      * @param Configurable $productConfigurable
      * @param Json $json
      * @param Logger $logger
+     * @param ConfigHelper $configHelper
+     * @param VariantMapHelper $variantMapHelper
      */
     public function __construct(
         ProductRepositoryInterface $productRepository,
@@ -79,7 +91,9 @@ class ProcessMatch
         Factory                    $optionsConfigurableFactory,
         Configurable               $productConfigurable,
         Json                       $json,
-        Logger                     $logger
+        Logger                     $logger,
+        ConfigHelper               $configHelper,
+        VariantMapHelper           $variantMapHelper
     ) {
         $this->productRepository = $productRepository;
         $this->productHelper = $productHelper;
@@ -87,6 +101,14 @@ class ProcessMatch
         $this->productConfigurable = $productConfigurable;
         $this->json = $json;
         $this->logger = $logger;
+        $this->_configHelper = $configHelper;
+        $this->_variantMapHelper = $variantMapHelper;
+        $this->variantNameData = [
+            'EMBALAGEM' => $this->_configHelper->getAttrVariantEmbalagem(),
+            'COR'       => $this->_configHelper->getAttrVariantColor(),
+            'TAMANHO'   => $this->_configHelper->getAttrVariantTamanho(),
+            'SELLER'    => $this->_configHelper->getAttrVariantSeller()
+        ];
     }
 
     /**
@@ -198,7 +220,7 @@ class ProcessMatch
     {
         $attributeValues[] = ['value_index' => self::POSITION_DEFAULT];
         $attributeDataTenant = $this->productHelper->getAttributeDataByCode(
-            self::ATTRIBUTE_CODE_VARIANT_SELLER
+            $this->_configHelper->getAttrVariantSeller()
         );
 
         $configurableAttributesData = [
@@ -212,20 +234,24 @@ class ProcessMatch
 
         $i = self::POSITION_DEFAULT + 1;
         foreach ($attributeVariation as $attribute) {
-            if (array_key_exists($attribute['name'], $this->variantNameData)) {
-                $attributeData = $this->productHelper->getAttributeDataByCode(
-                    $this->variantNameData[$attribute['name']]
-                );
-
-                $attributeToConfigurable = [
-                    'attribute_id' => $attributeData->getId(),
-                    'label' => $attributeData->getFrontendLabel(),
-                    'position' => $i,
-                    'values' => $attributeValues
-                ];
-                $configurableAttributesData[] = $attributeToConfigurable;
-                $i++;
+            $variantName = (string)($attribute['name'] ?? '');
+            if ($variantName === '' || strtoupper($variantName) === 'SELLER') {
+                continue;
             }
+
+            $attributeCode = $this->_variantMapHelper->getAttributeCode($variantName);
+            $attributeData = $this->productHelper->getAttributeDataByCode($attributeCode);
+            if (!$attributeData || !$attributeData->getId()) {
+                continue;
+            }
+
+            $configurableAttributesData[] = [
+                'attribute_id' => $attributeData->getId(),
+                'label' => $attributeData->getFrontendLabel(),
+                'position' => $i,
+                'values' => $attributeValues
+            ];
+            $i++;
         }
 
         return $this->optionsConfigurableFactory->create($configurableAttributesData);

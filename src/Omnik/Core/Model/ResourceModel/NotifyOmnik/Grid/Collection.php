@@ -39,8 +39,8 @@ class Collection extends NotifyCollection implements SearchResultInterface
                                $eventObject,
                                $resourceModel,
                                $model = Document::class,
-        ?AdapterInterface       $connection = null,
-        ?AbstractDb             $resource = null
+        ?AdapterInterface      $connection = null,
+        ?AbstractDb            $resource = null
     ) {
         parent::__construct($entityFactory, $logger, $fetchStrategy, $eventManager, $connection, $resource);
         $this->_eventPrefix = $eventPrefix;

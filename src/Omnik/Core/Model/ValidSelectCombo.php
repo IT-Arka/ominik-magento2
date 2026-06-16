@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Omnik\Core\Model;
 
 use Omnik\Core\Api\ValidSelectComboInterface;
-
+use Omnik\Core\Helper\Config as ConfigHelper;
 use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\Framework\Webapi\Rest\Request;
 
@@ -25,12 +25,19 @@ class ValidSelectCombo implements ValidSelectComboInterface
      * @param ProductRepositoryInterface $productRepositoryInterface
      * @param Request $request
      */
+    /**
+     * @var ConfigHelper
+     */
+    private ConfigHelper $_configHelper;
+
     public function __construct(
         ProductRepositoryInterface $productRepositoryInterface,
-        Request $request
+        Request $request,
+        ConfigHelper $configHelper
     ) {
         $this->productRepositoryInterface = $productRepositoryInterface;
         $this->request = $request;
+        $this->_configHelper = $configHelper;
     }
 
     /**
@@ -47,9 +54,11 @@ class ValidSelectCombo implements ValidSelectComboInterface
         $product = $this->productRepositoryInterface->getById($productId);
         $products = $product->getTypeInstance()->getUsedProducts($product);
 
+        $sellerAttr    = $this->_configHelper->getAttrVariantSeller();
+        $embalagemAttr = $this->_configHelper->getAttrVariantEmbalagem();
         foreach ($products as $children) {
-            $seller = (int) $children->getCustomAttribute("variant_seller")->getValue();
-            $swatch = (int) $children->getCustomAttribute("variant_embalagem")->getValue();
+            $seller = (int)($children->getCustomAttribute($sellerAttr)?->getValue() ?? 0);
+            $swatch = (int)($children->getCustomAttribute($embalagemAttr)?->getValue() ?? 0);
         }
 
         return true;

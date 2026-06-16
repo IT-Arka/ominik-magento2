@@ -178,24 +178,6 @@ class QuoteHandler implements QuoteHandlerInterface
 
     /**
      * @param Quote $split
-     * @param Order $order
-     * @param array $orderIds
-     * @return QuoteHandlerInterface
-     */
-    public function defineSessions(Quote $split, Order $order, array $orderIds): QuoteHandlerInterface
-    {
-        $this->checkoutSession->setLastQuoteId($split->getId());
-        $this->checkoutSession->setLastSuccessQuoteId($split->getId());
-        $this->checkoutSession->setLastOrderId($order->getId());
-        $this->checkoutSession->setLastRealOrderId($order->getIncrementId());
-        $this->checkoutSession->setLastOrderStatus($order->getStatus());
-        $this->checkoutSession->setOrderIds($orderIds);
-
-        return $this;
-    }
-
-    /**
-     * @param Quote $split
      * @param string $paymentMethod
      * @param PaymentInterface|null $payment
      * @return QuoteHandlerInterface
@@ -210,6 +192,24 @@ class QuoteHandler implements QuoteHandlerInterface
             $data = $payment->getData();
             $split->getPayment()->importData($data);
         }
+        return $this;
+    }
+
+    /**
+     * @param Quote $split
+     * @param Order $order
+     * @param array $orderIds
+     * @return QuoteHandlerInterface
+     */
+    public function defineSessions(Quote $split, Order $order, array $orderIds): QuoteHandlerInterface
+    {
+        $this->checkoutSession->setLastQuoteId($split->getId());
+        $this->checkoutSession->setLastSuccessQuoteId($split->getId());
+        $this->checkoutSession->setLastOrderId($order->getId());
+        $this->checkoutSession->setLastRealOrderId($order->getIncrementId());
+        $this->checkoutSession->setLastOrderStatus($order->getStatus());
+        $this->checkoutSession->setOrderIds($orderIds);
+
         return $this;
     }
 }
