@@ -40,6 +40,11 @@ class CronIntegration extends Value
     protected string $_runModelPath = '';
 
     /**
+     * @var Http
+     */
+    protected Http $httprequest;
+
+    /**
      * @param Context $context
      * @param Registry $registry
      * @param ScopeConfigInterface $config

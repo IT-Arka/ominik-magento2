@@ -14,6 +14,11 @@ use Magento\Framework\Exception\NoSuchEntityException;
 class History extends BlockHistory
 {
     /**
+     * @var Collection|null
+     */
+    protected $orders;
+
+    /**
      * @param Context $context
      * @param CollectionFactory $orderCollectionFactory
      * @param Session $customerSession

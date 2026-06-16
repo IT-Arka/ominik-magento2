@@ -35,6 +35,11 @@ class ProductSeller implements ProductSellerInterface
     private ProductsOptions $productsOptions;
 
     /**
+     * @var ConfigHelper
+     */
+    private ConfigHelper $configHelper;
+
+    /**
      * @param ProductRepositoryInterface $productRepositoryInterface
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param SellerRepositoryInterface $sellerRepositoryInterface
