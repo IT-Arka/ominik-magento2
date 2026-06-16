@@ -107,7 +107,7 @@ class SearchCriteriaResolver extends MagentoSearchCriteriaResolver
 
         $this->redis = new \Cm_Cache_Backend_Redis($options);
 
-        parent::__construct($builder, $collection, $searchRequestName, $currentPage, $size, $orders);
+        parent::__construct($builder, $searchRequestName, $currentPage, $size, $orders);
     }
 
     /**
