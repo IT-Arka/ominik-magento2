@@ -77,7 +77,7 @@ class Cancel
         try {
             $order->cancel();
             $this->orderRepositoryInterface->save($order);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return false;
         }
 
@@ -93,7 +93,7 @@ class Cancel
         try {
             // TODO: Get the items that were canceled through the Omnik API and perform a partial refund
             return false;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return false;
         }
 
@@ -109,7 +109,7 @@ class Cancel
                 $order->getBaseTotalPaid(),
                 $order->getShippingAmount()
             );
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return false;
         }
     }
@@ -173,7 +173,7 @@ class Cancel
                     $this->creditmemoSender->send($creditmemo);
                 }
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return false;
         }
 

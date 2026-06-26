@@ -130,7 +130,7 @@ class Invoice implements NotifyHandlerInterface
 
                     $this->notifyOmnikDataInterface->changeStatusNotify((int)$data['entity_id']);
                     $qtyRegisters++;
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     $this->notifyOmnikDataInterface->changeStatusNotify(
                         (int)$data['entity_id'],
                         NotifyOmnikDataInterface::STATUS_ERROR,
@@ -191,8 +191,9 @@ class Invoice implements NotifyHandlerInterface
             $parentOrder->setStatus(self::STATUS_ORDER_INVOICED);
             $parentOrder->save();
 
-        } catch (\Exception $e) {
-
+        } catch (\Throwable $e) {
+            // Best-effort: a falha ao propagar o status para o pedido pai não deve
+            // interromper o faturamento do pedido filho.
         }
 
     }

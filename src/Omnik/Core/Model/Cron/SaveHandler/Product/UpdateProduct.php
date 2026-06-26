@@ -69,7 +69,7 @@ class UpdateProduct implements NotifyHandlerInterface
                     if (isset($productData['productData'])) {
                         try {
                             $this->productService->updateProduct($productData, $storeId);
-                        } catch (Exception $e) {
+                        } catch (\Throwable $e) {
                             $this->notifyOmnikDataInterface->changeStatusNotify((int) $data['entity_id']);
                             $this->logger->error(
                                 'UPDATE | PRODUCT (' . $data['resource_id'] . '): ' . $e->getMessage()

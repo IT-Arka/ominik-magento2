@@ -21,10 +21,19 @@
         <column xsi:type="int" name="stock" padding="11" unsigned="true" nullable="true" comment="Qty stock" />
         <column xsi:type="text" name="error_body" nullable="false" comment="Error Body"/>
         <column xsi:type="smallint" name="attempts" unsigned="false" nullable="true" default="0" comment="Attempts"/>
+        <column xsi:type="varchar" name="worker_token" length="64" nullable="true" comment="Atomic claim token for cron workers"/>
 
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="entity_id" />
         </constraint>
+
+        <index referenceId="OMNIK_NOTIFY_OMNIK_STATUS_RESOURCE_TYPE" indexType="btree">
+            <column name="status"/>
+            <column name="resource_type"/>
+        </index>
+        <index referenceId="OMNIK_NOTIFY_OMNIK_WORKER_TOKEN" indexType="btree">
+            <column name="worker_token"/>
+        </index>
 
     </table>
 

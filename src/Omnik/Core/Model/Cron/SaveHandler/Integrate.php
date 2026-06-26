@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Omnik\Core\Model\Cron\SaveHandler;
 
 use Exception;
+use Omnik\Core\Helper\ApiResponse;
 use Omnik\Core\Model\Integration\Product\GetProductsModerated;
 use Omnik\Core\Api\Data\NotifyProductModerationDataInterface;
 use Omnik\Core\Api\ProductHandlerInterface;
@@ -65,6 +66,11 @@ class Integrate implements ProductHandlerInterface
     protected $configurableType;
 
     /**
+     * @var ApiResponse
+     */
+    private ApiResponse $apiResponse;
+
+    /**
      * @param GetProductsModerated $getProductsModerated
      * @param IntegrationProduct $integrationProduct
      * @param NotifyProductModerationDataInterface $notifyProductModerationData
@@ -84,7 +90,8 @@ class Integrate implements ProductHandlerInterface
         Json                                 $json,
         CreateProduct                        $createProduct,
         ProductRepositoryInterface           $productRepository,
-        Configurable                         $configurableType
+        Configurable                         $configurableType,
+        ApiResponse                          $apiResponse
     ) {
         $this->getProductsModerated = $getProductsModerated;
         $this->integrationProduct = $integrationProduct;
@@ -95,6 +102,7 @@ class Integrate implements ProductHandlerInterface
         $this->createProduct = $createProduct;
         $this->productRepository = $productRepository;
         $this->configurableType = $configurableType;
+        $this->apiResponse = $apiResponse;
     }
 
     /**
@@ -105,7 +113,8 @@ class Integrate implements ProductHandlerInterface
     public function execute(array $registers): void
     {
         if (!empty($registers)) {
-            $this->setIsRunning($registers);
+            // Registers arrive already claimed (status RUNNING) by the atomic claim
+            // in ProductCron, so no setIsRunning() is needed here anymore.
             $simpleSkuProducts = [];
             $configurableSku = '';
             foreach ($registers as $data) {
@@ -113,7 +122,11 @@ class Integrate implements ProductHandlerInterface
                 $storeId = (int)$data['store_id'];
                 $idNotify = (int)$data['entity_id'];
                 $productModeratedData = $this->getProductsModerated->execute($data['resource_id'], $storeId);
-                
+
+                if ($this->handleTransientFailure($productModeratedData, $idNotify)) {
+                    continue;
+                }
+
                 if ($this->isInvalid($productModeratedData, $data)) {
                     continue;
                 }
@@ -136,6 +149,13 @@ class Integrate implements ProductHandlerInterface
 
                     $configurableSku = $this->createProduct->getConfigurableSku($productModeratedData);
                     $configurableProduct = $this->getConfigurableProductBySku($configurableSku);
+
+                    if ($configurableProduct === null) {
+                        throw new \RuntimeException(
+                            'Configurable product not found after integration. SKU: ' . $configurableSku
+                        );
+                    }
+
                     $childProducts = $this->getChildProducts($configurableProduct->getId());
 
                     $childProductSend = [];
@@ -164,7 +184,7 @@ class Integrate implements ProductHandlerInterface
                     ];
 
                     $this->productHelper->publishResult($productData, $storeId);
-                } catch (Exception $e) {
+                } catch (\Throwable $e) {
                     $error = "Product NOT INTEGRATED error: " . $e->getMessage() . ' - STORE: ' . $storeId .
                         ' - ' . $e->getFile() . ' - ' . $e->getLine();
 
@@ -226,16 +246,45 @@ class Integrate implements ProductHandlerInterface
     }
 
     /**
-     * @param $registers
-     * @return void
+     * Handle a transient transport failure from the moderation API.
+     *
+     * A {"fails":true} (or null) response means the Omnik API was unreachable or
+     * errored — NOT that the product is absent. Marking it NOT_FOUND would retire a
+     * valid product forever (the root cause of the production incident). Instead we
+     * increment attempts and release the register back to the queue for retry, only
+     * parking it in STATUS_ERROR once the attempt limit is exhausted.
+     *
+     * @param array|null $productModeratedData
+     * @param int $idNotify
+     * @return bool true when the response was a transient failure and was handled
      */
-    public function setIsRunning($registers)
+    private function handleTransientFailure($productModeratedData, int $idNotify): bool
     {
-        foreach ($registers as $data) {
-            $idNotify = (int)$data['entity_id'];
-            $this->notifyProductModerationData->changeStatusNotify(
-                $idNotify, NotifyProductModerationDataInterface::STATUS_RUNNING);
+        $response = is_array($productModeratedData) ? $productModeratedData : null;
+        if (!$this->apiResponse->isTransportFailure($response)) {
+            return false;
         }
+
+        $attempts = $this->notifyProductModerationData->changeAttempts($idNotify);
+
+        $this->logger->error(
+            'Product moderation API transient failure (fails:true) - notify_id: ' . $idNotify .
+            ' - attempts: ' . $attempts,
+            ['response' => $response]
+        );
+
+        if ($attempts >= NotifyProductModerationDataInterface::MAX_ATTEMPTS) {
+            $this->notifyProductModerationData->changeStatusNotify(
+                $idNotify,
+                NotifyProductModerationDataInterface::STATUS_ERROR,
+                'Omnik moderation API unreachable after ' . $attempts . ' attempts (fails:true)'
+            );
+        } else {
+            // Return the register to the pending queue so a later cron retries it.
+            $this->notifyProductModerationData->releaseClaim($idNotify);
+        }
+
+        return true;
     }
 
     /**
@@ -284,7 +333,7 @@ class Integrate implements ProductHandlerInterface
 
     /**
      * @param string $sku
-     * @return \Magento\Catalog\Api\Data\ProductInterface
+     * @return \Magento\Catalog\Api\Data\ProductInterface|null
      */
     public function getConfigurableProductBySku($sku)
     {
@@ -293,9 +342,11 @@ class Integrate implements ProductHandlerInterface
             if ($product->getTypeId() === \Magento\ConfigurableProduct\Model\Product\Type\Configurable::TYPE_CODE) {
                 return $product;
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $this->logger->error('ERROR: find sku ' . $sku . ' ' . $e->getMessage());
         }
+
+        return null;
     }
 
     /**

@@ -7,6 +7,7 @@ use Magento\Sales\Api\Data\ShipmentCommentCreationInterface;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\ShipOrder;
 use Magento\Sales\Model\Order\Shipment\TrackFactory;
+use Omnik\Core\Logger\Logger;
 
 class Shipment
 {
@@ -15,12 +16,14 @@ class Shipment
      * @param ShipmentCommentCreationInterface $shipmentCommentCreation
      * @param ShipOrder $shipOrder
      * @param OrderConvert $orderConvert
+     * @param Logger $logger
      */
     public function __construct(
         private readonly TrackFactory                     $trackFactory,
         private readonly ShipmentCommentCreationInterface $shipmentCommentCreation,
         private readonly ShipOrder                        $shipOrder,
-        private readonly OrderConvert                     $orderConvert
+        private readonly OrderConvert                     $orderConvert,
+        private readonly Logger                           $logger
     ) {
 
     }
@@ -53,6 +56,10 @@ class Shipment
                     $comment,
                     $tracks);
             } catch (\Exception $e) {
+                $this->logger->error(
+                    'Shipment creation failed - order: ' . (string)$order->getIncrementId() .
+                    ' - ' . $e->getMessage()
+                );
             }
 
             return $shipmentId;

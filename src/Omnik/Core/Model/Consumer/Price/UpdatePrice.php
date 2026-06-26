@@ -8,6 +8,7 @@ use Exception;
 use Omnik\Core\Model\Service\Product;
 use Omnik\Core\Api\Data\Price\PriceQueueInterface;
 use Omnik\Core\Logger\Logger;
+use Magento\Framework\Exception\NoSuchEntityException;
 
 class UpdatePrice
 {
@@ -43,13 +44,21 @@ class UpdatePrice
             $sku = $this->productService->getSkuProduct($priceQueue->getResourceId());
 
             if (is_null($sku)) {
-                $msg = 'Product not found: SKU_ID_OMNIK - ' . $priceQueue->getResourceId();
-                throw new Exception($msg);
+                // Permanent failure: the product genuinely does not exist. Log and ack
+                // (discard) — requeueing would loop forever on a message that can't succeed.
+                throw new NoSuchEntityException(
+                    __('Product not found: SKU_ID_OMNIK - %1', $priceQueue->getResourceId())
+                );
             }
 
             $this->productService->updatePriceProductBySku($sku, $priceQueue->getFromPrice(), $priceQueue->getPrice());
+        } catch (NoSuchEntityException $e) {
+            $this->logger->error('UPDATE/PRICE PERMANENT ERROR (discarded): ' . $e->getMessage());
         } catch (Exception $e) {
-            $this->logger->error('UPDATE/PRICE ERROR: ' . $e->getMessage());
+            // Transient failure (DB lock, save error, connection): rethrow so the queue
+            // framework requeues the message instead of silently dropping the price update.
+            $this->logger->error('UPDATE/PRICE TRANSIENT ERROR (requeued): ' . $e->getMessage());
+            throw $e;
         }
     }
 }

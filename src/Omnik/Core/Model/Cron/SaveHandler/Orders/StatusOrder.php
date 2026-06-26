@@ -170,7 +170,7 @@ class StatusOrder implements NotifyHandlerInterface
                                     $order = $this->orderRepository->get($orderId);
                                     $order->setState($currentState)->setStatus(strtolower($data['event']));
                                     $this->orderRepository->save($order);
-                                } catch (\Exception $e) {
+                                } catch (\Throwable $e) {
                                     $this->logger->error($e->getMessage());
                                 }
                                 $qtyRegisters++;
@@ -235,7 +235,7 @@ class StatusOrder implements NotifyHandlerInterface
                         break;
                     }
 
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     $this->notifyOmnikDataInterface->changeStatusNotify(
                         (int)$data['entity_id'],
                         NotifyOmnikDataInterface::STATUS_ERROR,

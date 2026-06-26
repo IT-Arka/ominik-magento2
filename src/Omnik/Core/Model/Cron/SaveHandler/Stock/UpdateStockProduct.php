@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Omnik\Core\Model\Cron\SaveHandler\Stock;
 
-use Exception;
 use Omnik\Core\Api\Data\NotifyOmnikDataInterface;
 use Omnik\Core\Api\NotifyHandlerInterface;
+use Omnik\Core\Logger\Logger;
 use Omnik\Core\Model\Service\Product;
 
 class UpdateStockProduct implements NotifyHandlerInterface
@@ -22,15 +22,23 @@ class UpdateStockProduct implements NotifyHandlerInterface
     private Product $productService;
 
     /**
+     * @var Logger
+     */
+    private Logger $logger;
+
+    /**
      * @param NotifyOmnikDataInterface $notifyOmnikDataInterface
      * @param Product $productService
+     * @param Logger $logger
      */
     public function __construct(
         NotifyOmnikDataInterface $notifyOmnikDataInterface,
-        Product $productService
+        Product                  $productService,
+        Logger                   $logger
     ) {
         $this->notifyOmnikDataInterface = $notifyOmnikDataInterface;
         $this->productService = $productService;
+        $this->logger = $logger;
     }
 
     /**
@@ -61,10 +69,13 @@ class UpdateStockProduct implements NotifyHandlerInterface
                                     $idNotify,
                                     NotifyOmnikDataInterface::STATUS_INTEGRATED
                                 );
-                            } catch (Exception $e) {
+                            } catch (\Throwable $e) {
                                 $this->notifyOmnikDataInterface->changeStatusNotify(
                                     $idNotify,
                                     NotifyOmnikDataInterface::STATUS_ERROR
+                                );
+                                $this->logger->error(
+                                    'UPDATE STOCK | SKU (' . $sku . '): ' . $e->getMessage()
                                 );
                                 continue;
                             }

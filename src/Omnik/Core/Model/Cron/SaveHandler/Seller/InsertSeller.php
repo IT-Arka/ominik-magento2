@@ -11,6 +11,7 @@ use Omnik\Core\Api\NotifyHandlerInterface;
 use Omnik\Core\Model\Service\Seller;
 use Magento\Framework\Exception\LocalizedException;
 use Omnik\Core\Logger\Logger;
+use Omnik\Core\Helper\ApiResponse;
 use Omnik\Core\Helper\Config;
 use Omnik\Core\Model\Data\NotifyOmnikData;
 
@@ -47,12 +48,18 @@ class InsertSeller implements NotifyHandlerInterface
     private NotifyOmnikData $notifyOmnikData;
 
     /**
+     * @var ApiResponse
+     */
+    private ApiResponse $apiResponse;
+
+    /**
      * @param NotifyOmnikDataInterface $notifyOmnikDataInterface
      * @param GetSellerByDocument $getSellerByDocument
      * @param Seller $sellerService
      * @param Logger $logger
      * @param Config $helperConfig
      * @param NotifyOmnikData $notifyOmnikData
+     * @param ApiResponse $apiResponse
      */
     public function __construct(
         NotifyOmnikDataInterface $notifyOmnikDataInterface,
@@ -60,7 +67,8 @@ class InsertSeller implements NotifyHandlerInterface
         Seller $sellerService,
         Logger $logger,
         Config $helperConfig,
-        NotifyOmnikData $notifyOmnikData
+        NotifyOmnikData $notifyOmnikData,
+        ApiResponse $apiResponse
     ) {
         $this->notifyOmnikDataInterface = $notifyOmnikDataInterface;
         $this->getSellerByDocument = $getSellerByDocument;
@@ -68,6 +76,7 @@ class InsertSeller implements NotifyHandlerInterface
         $this->logger = $logger;
         $this->helperConfig = $helperConfig;
         $this->notifyOmnikData = $notifyOmnikData;
+        $this->apiResponse = $apiResponse;
     }
 
     /**
@@ -79,6 +88,7 @@ class InsertSeller implements NotifyHandlerInterface
     public function execute(array $registers): void
     {
         if (!empty($registers)) {
+            $idNotify = 0;
             try {
                 $qtyRegisters = 0;
 
@@ -88,6 +98,17 @@ class InsertSeller implements NotifyHandlerInterface
                         $idNotify = (int) $data['entity_id'];
 
                         $seller = $this->getSellerByDocument->execute($data['seller'], $storeId);
+
+                        // A transient API failure (fails:true) must not retire the seller as
+                        // NOT_FOUND. Count the attempt and leave it pending for the next run.
+                        if ($this->apiResponse->isTransportFailure(is_array($seller) ? $seller : null)) {
+                            $this->logger->error(
+                                'Seller API transient failure (fails:true) - notify_id: ' . $idNotify .
+                                ' - seller: ' . $data['seller']
+                            );
+                            $this->notifyOmnikDataInterface->changeAttempts($idNotify);
+                            continue;
+                        }
 
                         if (!isset($seller['sellerData'])) {
                             $this->notifyOmnikDataInterface->changeStatusNotify(
@@ -117,12 +138,14 @@ class InsertSeller implements NotifyHandlerInterface
                         break;
                     }
                 }
-            } catch (Exception $e) {
+            } catch (\Throwable $e) {
                 $this->logger->error($e->getMessage());
-                $this->notifyOmnikDataInterface->changeStatusNotify(
-                    $idNotify,
-                    NotifyOmnikDataInterface::STATUS_ERROR
-                );
+                if ($idNotify > 0) {
+                    $this->notifyOmnikDataInterface->changeStatusNotify(
+                        $idNotify,
+                        NotifyOmnikDataInterface::STATUS_ERROR
+                    );
+                }
             }
         }
     }
