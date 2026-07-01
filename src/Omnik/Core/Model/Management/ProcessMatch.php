@@ -8,6 +8,7 @@ use Omnik\Core\Helper\Config as ConfigHelper;
 use Omnik\Core\Helper\Product\Data;
 use Omnik\Core\Helper\VariantAttributeMap as VariantMapHelper;
 use Omnik\Core\Logger\Logger;
+use Omnik\Core\Model\Integration\Product\PublishResultBuilder;
 use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\ConfigurableProduct\Helper\Product\Options\Factory;
 use Magento\ConfigurableProduct\Model\Product\Type\Configurable;
@@ -76,6 +77,11 @@ class ProcessMatch
     private VariantMapHelper $_variantMapHelper;
 
     /**
+     * @var PublishResultBuilder
+     */
+    private PublishResultBuilder $publishResultBuilder;
+
+    /**
      * @param ProductRepositoryInterface $productRepository
      * @param Data $productHelper
      * @param Factory $optionsConfigurableFactory
@@ -84,6 +90,7 @@ class ProcessMatch
      * @param Logger $logger
      * @param ConfigHelper $configHelper
      * @param VariantMapHelper $variantMapHelper
+     * @param PublishResultBuilder $publishResultBuilder
      */
     public function __construct(
         ProductRepositoryInterface $productRepository,
@@ -93,7 +100,8 @@ class ProcessMatch
         Json                       $json,
         Logger                     $logger,
         ConfigHelper               $configHelper,
-        VariantMapHelper           $variantMapHelper
+        VariantMapHelper           $variantMapHelper,
+        PublishResultBuilder       $publishResultBuilder
     ) {
         $this->productRepository = $productRepository;
         $this->productHelper = $productHelper;
@@ -103,12 +111,53 @@ class ProcessMatch
         $this->logger = $logger;
         $this->_configHelper = $configHelper;
         $this->_variantMapHelper = $variantMapHelper;
+        $this->publishResultBuilder = $publishResultBuilder;
         $this->variantNameData = [
             'EMBALAGEM' => $this->_configHelper->getAttrVariantEmbalagem(),
             'COR'       => $this->_configHelper->getAttrVariantColor(),
             'TAMANHO'   => $this->_configHelper->getAttrVariantTamanho(),
             'SELLER'    => $this->_configHelper->getAttrVariantSeller()
         ];
+    }
+
+    /**
+     * Convert the internal sku_publish_* structure (['marketplaceId' => <magento sku>, 'skuId' => ...])
+     * into the contract's skus format ([{result, skuId, marketplaceId}]).
+     *
+     * @param array $skuPublishData
+     * @return array
+     */
+    private function toSkuResults(array $skuPublishData): array
+    {
+        $skus = [];
+        foreach ($skuPublishData as $item) {
+            $magentoSku = (string)($item['marketplaceId'] ?? '');
+            $skus[] = $this->publishResultBuilder->skuResult(
+                PublishResultBuilder::RESULT_PUBLISHED,
+                (string)($item['skuId'] ?? ''),          // Omnik sku id
+                $this->resolveSkuEntityId($magentoSku)    // Magento sku entity_id
+            );
+        }
+
+        return $skus;
+    }
+
+    /**
+     * Resolve the Magento entity_id for a sku; returns '' if not found.
+     *
+     * @param string $magentoSku
+     * @return string
+     */
+    private function resolveSkuEntityId(string $magentoSku): string
+    {
+        if ($magentoSku === '') {
+            return '';
+        }
+        try {
+            return (string)$this->productRepository->get($magentoSku)->getId();
+        } catch (NoSuchEntityException $e) {
+            return '';
+        }
     }
 
     /**
@@ -137,12 +186,11 @@ class ProcessMatch
 
                     $this->productRepository->save($product);
 
-                    $publishProductData = [
-                        'productId' => $response['product_id'],
-                        'marketplaceId' => $product->getSku(),
-                        'result' => self::RESULT_PUBLISHED,
-                        'skus' => $response['sku_publish_match']
-                    ];
+                    $publishProductData = $this->publishResultBuilder->buildPublished(
+                        (string)$response['product_id'],     // Omnik product id
+                        (string)$product->getId(),           // Magento product entity_id
+                        $this->toSkuResults($response['sku_publish_match'])
+                    );
 
                     $publishLog = $this->json->serialize($publishProductData);
                     $this->logger->info('PUBLISH MATCH: ' . $publishLog);
@@ -198,12 +246,11 @@ class ProcessMatch
 
         $this->productRepository->save($product);
 
-        $publishProductData = [
-            'productId' => $responseConfigurable['product_id'],
-            'marketplaceId' => $responseConfigurable['marketplace_id'],
-            'result' => self::RESULT_PUBLISHED,
-            'skus' => $responseSimple['sku_publish_no_match']
-        ];
+        $publishProductData = $this->publishResultBuilder->buildPublished(
+            (string)$responseConfigurable['product_id'],  // Omnik product id
+            (string)$product->getId(),                    // Magento product entity_id
+            $this->toSkuResults($responseSimple['sku_publish_no_match'])
+        );
 
         $publishLog = $this->json->serialize($publishProductData);
         $this->logger->info('PUBLISH NO MATCH: ' . $publishLog);

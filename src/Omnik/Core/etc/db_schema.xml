@@ -21,10 +21,19 @@
         <column xsi:type="int" name="stock" padding="11" unsigned="true" nullable="true" comment="Qty stock" />
         <column xsi:type="text" name="error_body" nullable="false" comment="Error Body"/>
         <column xsi:type="smallint" name="attempts" unsigned="false" nullable="true" default="0" comment="Attempts"/>
+        <column xsi:type="varchar" name="worker_token" length="64" nullable="true" comment="Atomic claim token for cron workers"/>
 
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="entity_id" />
         </constraint>
+
+        <index referenceId="OMNIK_NOTIFY_OMNIK_STATUS_RESOURCE_TYPE" indexType="btree">
+            <column name="status"/>
+            <column name="resource_type"/>
+        </index>
+        <index referenceId="OMNIK_NOTIFY_OMNIK_WORKER_TOKEN" indexType="btree">
+            <column name="worker_token"/>
+        </index>
 
     </table>
 
@@ -123,6 +132,8 @@
         <column xsi:type="varchar" name="split_order_type" nullable="true" length="32" comment="Status"/>
         <column xsi:type="int" name="split_order_parent_id" unsigned="true" nullable="true" identity="false" comment="Parent Splited Order ID"/>
         <column xsi:type="int" name="has_integrated_omnik" unsigned="true" nullable="false" default="0" comment="Has Integrated Omnik" />
+        <column xsi:type="int" name="estimated_delivery_business_days" unsigned="true" nullable="true" comment="Omnik deliveryEstimateBusinessDays" />
+        <column xsi:type="varchar" name="estimated_delivery_time_type" length="2" nullable="true" comment="Omnik deliveryTimeType (bd=dias uteis, d=dias)" />
     </table>
     <table name="quote">
         <column xsi:type="varchar" name="split_order_type" nullable="true" length="32" comment="Status"/>

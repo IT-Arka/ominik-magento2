@@ -18,14 +18,45 @@ interface NotifyProductModerationDataInterface
     public const QTY_LIMIT_REGISTERS = 100;
 
     /**
+     * Maximum retry attempts before a register transitioning through transient
+     * failures is parked in STATUS_ERROR instead of being retried again.
+     */
+    public const MAX_ATTEMPTS = 5;
+
+    /**
      * @return array
      */
     public function getProductModerationApproved(): array;
 
     /**
+     * Atomically claim a batch of approved-moderation registers for this worker.
+     *
+     * @param int|null $maxAttempts
+     * @return array claimed registers (already marked as RUNNING)
+     */
+    public function claimProductModerationApproved(?int $maxAttempts = null): array;
+
+    /**
      * @param int $id
      * @param int $status
+     * @param string|null $errorBody
      * @return void
      */
-    public function changeStatusNotify(int $id, int $status): void;
+    public function changeStatusNotify(int $id, int $status, ?string $errorBody = null): void;
+
+    /**
+     * Increment the attempts counter of a register and return the new value.
+     *
+     * @param int $id
+     * @return int the attempts counter after incrementing
+     */
+    public function changeAttempts(int $id): int;
+
+    /**
+     * Release a claimed register back to the pending queue for retry.
+     *
+     * @param int $id
+     * @return void
+     */
+    public function releaseClaim(int $id): void;
 }

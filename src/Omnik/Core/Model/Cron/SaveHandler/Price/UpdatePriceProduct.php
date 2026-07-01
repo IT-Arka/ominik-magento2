@@ -8,7 +8,7 @@ use Exception;
 use Omnik\Core\Api\Data\NotifyOmnikDataInterface;
 use Omnik\Core\Api\NotifyHandlerInterface;
 use Omnik\Core\Model\Service\Product;
-use Magento\Framework\Exception\NoSuchEntityException;
+use Omnik\Core\Logger\Logger;
 
 class UpdatePriceProduct implements NotifyHandlerInterface
 {
@@ -23,15 +23,23 @@ class UpdatePriceProduct implements NotifyHandlerInterface
     private Product $productService;
 
     /**
+     * @var Logger
+     */
+    private Logger $logger;
+
+    /**
      * @param NotifyOmnikDataInterface $notifyOmnikDataInterface
      * @param Product $productService
+     * @param Logger $logger
      */
     public function __construct(
         NotifyOmnikDataInterface $notifyOmnikDataInterface,
-        Product $productService
+        Product $productService,
+        Logger $logger
     ) {
         $this->notifyOmnikDataInterface = $notifyOmnikDataInterface;
         $this->productService = $productService;
+        $this->logger = $logger;
     }
 
     /**
@@ -65,7 +73,13 @@ class UpdatePriceProduct implements NotifyHandlerInterface
                                     $idNotify,
                                     NotifyOmnikDataInterface::STATUS_INTEGRATED
                                 );
-                            } catch (NoSuchEntityException $e) {
+                            } catch (\Throwable $e) {
+                                // Catch every failure (not only NoSuchEntityException) so an
+                                // unexpected error on one register cannot abort the whole batch.
+                                $this->logger->error(
+                                    'Price update error - notify_id: ' . $idNotify .
+                                    ' - sku: ' . $sku . ' - ' . $e->getMessage()
+                                );
                                 $this->notifyOmnikDataInterface->changeStatusNotify(
                                     $idNotify,
                                     NotifyOmnikDataInterface::STATUS_ERROR

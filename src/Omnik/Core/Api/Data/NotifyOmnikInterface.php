@@ -28,6 +28,8 @@ interface NotifyOmnikInterface
 
     public const ATTEMPTS = 'attempts';
 
+    public const WORKER_TOKEN = 'worker_token';
+
     /**
      * @param int $entity_id
      * @return mixed

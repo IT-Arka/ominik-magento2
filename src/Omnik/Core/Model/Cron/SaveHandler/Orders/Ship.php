@@ -95,7 +95,7 @@ class Ship implements NotifyHandlerInterface
 
                     $this->notifyOmnikDataInterface->changeStatusNotify((int)$data['entity_id']);
                     $qtyRegisters++;
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     $this->notifyOmnikDataInterface->changeStatusNotify(
                         (int)$data['entity_id'],
                         NotifyOmnikDataInterface::STATUS_ERROR,

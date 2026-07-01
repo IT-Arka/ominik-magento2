@@ -3,6 +3,7 @@
 namespace Omnik\Core\Model\Carrier;
 
 use Omnik\Core\Api\Data\OmnikFreightRatesInterface;
+use Omnik\Core\Model\Shipping\DeliveryEstimate;
 use Omnik\Core\Model\Config\Configurable\ProductsOptions;
 use Omnik\Core\Model\Integration\Freight\GetShippingRates;
 use Omnik\Core\Helper\Quote\Data as QuoteHelper;
@@ -222,15 +223,65 @@ class Method extends AbstractCarrier implements CarrierInterface
                 $i++;
             }
 
+            $longestDelivery = $this->getLongestDeliveryOption($deliveryType);
+
             $params = [];
             $params['carrier'] = $this->_code;
             $params['carrierTitle'] = $key;
             $params['method'] = $methodId;
-            $params['methodTitle'] = $deliveryOption['deliveryTime'] <= 1 ? $deliveryOption['deliveryTime']." Dia útil" : $deliveryOption['deliveryTime']." Dias úteis";
+            $params['methodTitle'] = $this->buildMethodTitle($longestDelivery);
             $params['shippingPrice'] = $finalCost;
 
             $this->appendMethod($request, $result, $params);
         }
+    }
+
+    /**
+     * Monta o título do método de envio com o prazo de entrega estimado.
+     *
+     * Usa `deliveryEstimateBusinessDays` (dias) e `deliveryTimeType`
+     * (bd = dias úteis, d = dias) conforme contrato confirmado com a Omnik.
+     *
+     * @param array $deliveryOption
+     * @return string
+     */
+    public function buildMethodTitle(array $deliveryOption): string
+    {
+        $days = DeliveryEstimate::resolveDays($deliveryOption);
+        if ($days === null) {
+            return (string)__('Estimated delivery');
+        }
+
+        if (DeliveryEstimate::isBusinessDays($deliveryOption)) {
+            $unit = $days <= 1 ? __('business day') : __('business days');
+        } else {
+            $unit = $days <= 1 ? __('day') : __('days');
+        }
+
+        return (string)__('Delivery: up to %1 %2', $days, $unit);
+    }
+
+    /**
+     * Retorna a delivery option de maior prazo dentre as agregadas de um
+     * mesmo tipo de entrega (cenário multi-seller), para refletir o prazo
+     * total visível ao cliente.
+     *
+     * @param array $deliveryType
+     * @return array
+     */
+    private function getLongestDeliveryOption(array $deliveryType): array
+    {
+        $longest = [];
+        $longestDays = -1;
+        foreach ($deliveryType as $deliveryInfo) {
+            $days = DeliveryEstimate::resolveDays($deliveryInfo) ?? 0;
+            if ($days > $longestDays) {
+                $longestDays = $days;
+                $longest = $deliveryInfo;
+            }
+        }
+
+        return $longest;
     }
 
     /**
@@ -269,7 +320,7 @@ class Method extends AbstractCarrier implements CarrierInterface
                 $params['carrier'] = $this->_code;
                 $params['carrierTitle'] = $deliveryOption['description'];
                 $params['method'] = $tenant . '-' . $deliveryOption['deliveryMethodId'];
-                $params['methodTitle'] = $deliveryOption['deliveryTime'] <= 1 ? $deliveryOption['deliveryTime']." Dia útil" : $deliveryOption['deliveryTime']." Dias úteis";
+                $params['methodTitle'] = $this->buildMethodTitle($deliveryOption);
                 $params['shippingPrice'] = $deliveryOption['finalShippingCost'];
 
                 $this->appendMethod($request, $result, $params);

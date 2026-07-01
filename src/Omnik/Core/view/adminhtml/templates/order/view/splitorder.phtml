@@ -18,5 +18,16 @@ $order = $block->getOrder();
             <p><?= $block->escapeHtml(__('Order Parent Id')) ?>: <?= $order->getData(SplitOrderInterface::SPLIT_ORDER_PARENT_ID) ?></p>
             <p><?= $block->escapeHtml(__('Order Has Integrated Omnik')) ?>: <?= $order->getData(SplitOrderInterface::SPLIT_ORDER_HAS_INTEGRATED) ? 'Sim' : 'Não'; ?></p>
         <?php endif; ?>
+        <?php
+        $estimatedDeliveryDays = $order->getData('estimated_delivery_business_days');
+        $estimatedDeliveryType = $order->getData('estimated_delivery_time_type');
+        $deliveryTypeLabel = $estimatedDeliveryType === 'd' ? __('days') : __('business days');
+        ?>
+        <p>
+            <?= $block->escapeHtml(__('Estimated Delivery')) ?>:
+            <?= $estimatedDeliveryDays !== null && $estimatedDeliveryDays !== ''
+                ? $block->escapeHtml(__('up to %1 %2', $estimatedDeliveryDays, $deliveryTypeLabel))
+                : $block->escapeHtml(__('Not informed')) ?>
+        </p>
     </div>
 </section>

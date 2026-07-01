@@ -4,6 +4,7 @@ namespace Omnik\Core\Controller\Shipping;
 
 use Omnik\Core\Helper\ProductPostcode;
 use Omnik\Core\Model\Integration\Freight\GetShippingRates;
+use Omnik\Core\Model\Shipping\DeliveryEstimate;
 use Omnik\Core\Helper\Checkout\Data as CheckoutHelper;
 use Omnik\Core\Helper\Catalog\Data as CatalogHelper;
 use Omnik\Core\Helper\Quote\Data as QuoteHelper;
@@ -143,12 +144,37 @@ class Freight extends Action
 
             foreach ($deliveryOptions as $keyDelivery => $contentDelivery) {
                 $freight .= '<li>' . $contentDelivery['description'] . '<br>'
-                    . '<span class="days">' . $contentDelivery['deliveryTime'] . ' dias úteis |</span>'
+                    . '<span class="days">' . $this->formatDeliveryEstimate($contentDelivery) . ' |</span>'
                     . '<span class="price">R$ ' . $this->catalogHelper->formatCost($contentDelivery['finalShippingCost']) . '</span></li>';
             }
         }
 
         return $freight;
+    }
+
+    /**
+     * Formata o prazo de entrega de uma delivery option da Omnik.
+     *
+     * Usa `deliveryEstimateBusinessDays` (dias) e `deliveryTimeType`
+     * (bd = dias úteis, d = dias) conforme contrato confirmado com a Omnik.
+     *
+     * @param array $deliveryOption
+     * @return string
+     */
+    private function formatDeliveryEstimate(array $deliveryOption): string
+    {
+        $days = DeliveryEstimate::resolveDays($deliveryOption);
+        if ($days === null) {
+            return (string)__('Estimated delivery');
+        }
+
+        if (DeliveryEstimate::isBusinessDays($deliveryOption)) {
+            $unit = $days <= 1 ? __('business day') : __('business days');
+        } else {
+            $unit = $days <= 1 ? __('day') : __('days');
+        }
+
+        return (string)__('up to %1 %2', $days, $unit);
     }
 
     /**

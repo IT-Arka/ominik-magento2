@@ -32,11 +32,18 @@ class ProductCron
     }
 
     /**
+     * Atomically claim a disjoint batch of pending registers and process it.
+     *
+     * The claim marks rows as RUNNING in a single UPDATE, so the five parallel
+     * product cron jobs each take a distinct partition with no race condition.
+     *
      * @return void
      */
     public function execute(): void
     {
-        $registers = $this->notifyProductModerationData->getProductModerationApproved();
+        $registers = $this->notifyProductModerationData->claimProductModerationApproved(
+            NotifyProductModerationDataInterface::MAX_ATTEMPTS
+        );
 
         if (!empty($registers)) {
             $this->handlerPool->execute($registers);

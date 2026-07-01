@@ -6,6 +6,7 @@ use Omnik\Core\Api\SplitOrderInterface;
 use Omnik\Core\Model\HandleChildOrders;
 use Omnik\Core\Model\Integration\Sales\Approvation;
 use Omnik\Core\Model\Cron\SaveHandler\Orders\Invoice;
+use Omnik\Core\Logger\Logger;
 use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
 
@@ -14,10 +15,12 @@ class ChangeChildStatus implements ObserverInterface
     /**
      * @param HandleChildOrders $handleChildOrders
      * @param Approvation $integrationApprovation
+     * @param Logger $logger
      */
     public function __construct(
         private readonly HandleChildOrders $handleChildOrders,
-        private readonly Approvation $integrationApprovation
+        private readonly Approvation $integrationApprovation,
+        private readonly Logger $logger
     ) {
 
     }
@@ -57,6 +60,13 @@ class ChangeChildStatus implements ObserverInterface
             // O próprio integrate decide via StatusMapping (isApproved/isNotApproved).
             $this->integrationApprovation->integrate($order);
         } catch (\Exception $e) {
+            // Never swallow status-propagation failures: they leave the order out of
+            // sync with Omnik silently. Log with context so it can be reprocessed.
+            $this->logger->error(
+                'ChangeChildStatus failed to propagate status - order: ' .
+                (string)$order->getIncrementId() . ' - status: ' . (string)$order->getStatus() .
+                ' - ' . $e->getMessage()
+            );
         }
 
         return $this;

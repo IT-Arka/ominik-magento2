@@ -4,6 +4,7 @@ namespace Omnik\Core\Observer;
 
 use Omnik\Core\Model\Repositories\OmnikFreightRatesRepository;
 use Omnik\Core\Helper\SplitOrder\Data as SplitHelper;
+use Omnik\Core\Logger\Logger;
 use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
 use Magento\Sales\Model\OrderFactory;
@@ -14,11 +15,13 @@ class ClearFreightRate implements ObserverInterface
      * @param SplitHelper $helper
      * @param OmnikFreightRatesRepository $omnikFreightRatesRepository
      * @param OrderFactory $orderFactory
+     * @param Logger $logger
      */
     public function __construct(
         private readonly SplitHelper                 $helper,
         private readonly OmnikFreightRatesRepository $omnikFreightRatesRepository,
-        private readonly OrderFactory                $orderFactory
+        private readonly OrderFactory                $orderFactory,
+        private readonly Logger                      $logger
     ) {
 
     }
@@ -42,6 +45,7 @@ class ClearFreightRate implements ObserverInterface
                 }
             }
         } catch (\Exception $e) {
+            $this->logger->error('ClearFreightRate observer failed: ' . $e->getMessage());
         }
     }
 }
