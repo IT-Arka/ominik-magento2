@@ -133,7 +133,7 @@ class Params
             $params["customerData"]["phones"][0]["ddd"]    = $telephone["ddd"] ?? '';
             $params["customerData"]["phones"][0]["number"] = $telephone["number"] ?? '';
             $params["customerData"]["phones"][0]["local"]  = ConfigInterface::TELEPHONE_LOCAL_CELULAR;
-            $params["freightData"]["chargedValue"] = $order->getShippingAmount();
+            $params["freightData"]["chargedValue"] = round((float)$order->getShippingAmount(), 2);
 
             $params["deliveryData"]["deliveryDate"] = null;
 
@@ -206,8 +206,14 @@ class Params
             $params["orderValuesData"]["netValue"]   = $order->getGrandTotal();
             $params["orderValuesData"]["grossValue"] = $order->getSubtotal();
 
-            $itemCount   = count($items);
-            $freightItem = $itemCount > 0 ? round((float)$order->getShippingAmount() / $itemCount, 2) : 0.0;
+            $itemCount    = count($items);
+            $totalFreight = round((float)$order->getShippingAmount(), 2);
+            // Frete base por item (arredondado a 2 casas). O resíduo de arredondamento é
+            // somado ao ÚLTIMO item para que a soma dos itens feche EXATAMENTE com o total —
+            // a Omnik valida total == soma(itens) e rejeita (HTTP 422) qualquer divergência
+            // de centavos (ex.: 56.75 / 2 = 28.375 -> 28.38 + 28.38 = 56.76 != 56.75).
+            $freightItem    = $itemCount > 0 ? round($totalFreight / $itemCount, 2) : 0.0;
+            $allocatedSoFar = 0.0;
 
             $skuIdAttr = $this->integrationHelper->getAttrSkuId($storeId);
             $i = 0;
@@ -219,11 +225,18 @@ class Params
                         sprintf('Produto "%s" sem atributo "%s" (SKU ID Omnik) preenchido.', $item->getSku(), $skuIdAttr)
                     );
                 }
+
+                $isLastItem        = ($i === $itemCount - 1);
+                $itemFreight       = $isLastItem
+                    ? round($totalFreight - $allocatedSoFar, 2)
+                    : $freightItem;
+                $allocatedSoFar    = round($allocatedSoFar + $itemFreight, 2);
+
                 $params["items"][$i]["skuData"]["id"]               = $skuId;
                 $params["items"][$i]["priceData"]["unitPrice"]       = $item->getPrice();
                 $params["items"][$i]["priceData"]["discountUnit"]    = $item->getDiscountAmount();
                 $params["items"][$i]["quantityData"]["quantity"]     = (int)$item->getQtyOrdered();
-                $params["items"][$i]["freightData"]["chargedValue"]  = $freightItem;
+                $params["items"][$i]["freightData"]["chargedValue"]  = $itemFreight;
                 $i++;
             }
 

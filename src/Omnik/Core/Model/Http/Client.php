@@ -185,6 +185,49 @@ use Psr\Log\LoggerInterface;
      * @param $requestUrl
      * @param mixed $jsonParams
      */
+    /**
+     * Always-on diagnostic tap: appends the request/response/exception to
+     * var/log/omnik_http.log, independent of the module log_requests flag and of
+     * the configured logger (which is not wired on every code path). Use to see
+     * exactly what was sent to Omnik and what came back.
+     *
+     * @param string $stage REQUEST | RESPONSE | EXCEPTION
+     * @param array $data
+     * @return void
+     */
+    private function wireTap(string $stage, array $data): void
+    {
+        try {
+            $line = sprintf(
+                "[%s] %s %s\n",
+                gmdate('Y-m-d\TH:i:s\Z'),
+                $stage,
+                $this->json->serialize($data)
+            );
+            file_put_contents(BP . '/var/log/omnik_http.log', $line, FILE_APPEND | LOCK_EX);
+        } catch (\Throwable $e) {
+            // Never let diagnostics break the request.
+        }
+    }
+
+    /**
+     * Redact sensitive header values before logging.
+     *
+     * @param array|null $headers
+     * @return array
+     */
+    private function maskHeaders(?array $headers): array
+    {
+        $headers = $headers ?? [];
+        foreach (['token', 'application_id', 'Authorization'] as $key) {
+            if (isset($headers[$key]) && $headers[$key] !== '') {
+                $headers[$key] = '***';
+            }
+        }
+
+        return $headers;
+    }
+
     private function logRequest($requestId, $requestUrl, $jsonParams)
     {
         $logger = $this->config->get(ConfigInterface::PARAM_LOGGER);
@@ -403,16 +446,37 @@ use Psr\Log\LoggerInterface;
                 'timeout' => ($timeout ?? 360)
             ]);
             $client->setHeaders($headers);
+
+            // Wire-tap: grava SEMPRE o que sai (independe de config/logger), para diagnostico.
+            $this->wireTap('REQUEST', [
+                'requestId' => $requestId,
+                'method' => $method,
+                'url' => $requestUrl,
+                'headers' => $this->maskHeaders($headers),
+                'body' => is_array($params) ? $params : (string)$params,
+            ]);
+
             $response = $client->send();
 
             $httpStatus = $response->getStatusCode();
             $result = $response->getBody();
 
+            // Wire-tap: grava SEMPRE a resposta crua da Omnik.
+            $this->wireTap('RESPONSE', [
+                'requestId' => $requestId,
+                'url' => $requestUrl,
+                'httpStatus' => $httpStatus,
+                'reason' => $response->getReasonPhrase(),
+                'body' => $result,
+            ]);
+
             // Logs the response
             $this->logResponseIfEnabled($requestId, $httpStatus, $result, $headers);
 
-            // result not 200 throw error
-            if ($httpStatus !== 200) {
+            // Any 2xx is a success. Some endpoints (e.g. publishResult) reply 204 No Content
+            // with an empty body — treating != 200 as failure produced false fails:true.
+            $isSuccess = $httpStatus >= 200 && $httpStatus < 300;
+            if (!$isSuccess) {
                 $this->saveError($requestId, $response->getReasonPhrase(), $httpStatus);
 
                 return [
@@ -421,13 +485,22 @@ use Psr\Log\LoggerInterface;
                     'response' => $result
                 ];
             }
-            if ($response->getStatusCode()) {
-                return $this->returnResponse($requestId, $result, $returnJson);
+
+            // 204 / empty body: nothing to decode, the call succeeded.
+            if ($result === '' || $result === null) {
+                return ['fails' => false, 'httpStatus' => $httpStatus];
             }
+
+            return $this->returnResponse($requestId, $result, $returnJson);
 
 
         } catch (\Exception $e) {
-          //TODO: Log
+            $this->wireTap('EXCEPTION', [
+                'requestId' => $requestId ?? null,
+                'url' => $requestUrl ?? null,
+                'error' => $e->getMessage(),
+                'class' => get_class($e),
+            ]);
             return ['fails' => true];
         }
 

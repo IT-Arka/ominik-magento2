@@ -37,6 +37,8 @@ abstract class AbstractIntegration
     public const INTEGRATION_PRODUCT_PATH = '/catalog-products';
     public const PATH_PRODUCT_MODERATED = '/v1/products/moderated/';
     public const PATH_PRODUCT_PUBLISH = '/v1/catalog/products/publishResult';
+    // Path relativo à url_catalog (que já é .../v1/catalog) — evita duplicar /v1/catalog.
+    public const PATH_PRODUCT_PUBLISH_CATALOG = '/products/publishResult';
     public const PATH_PRODUCT_SKUS = '/v1/products/skus';
     public const PATH_PRODUCT = '/v1/products/';
     public const PATH_GET_CATEGORIES = '/v1/categories/marketplaces/{{marketplaceId}}/{{marketplace_category_id}}';

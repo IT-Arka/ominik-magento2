@@ -111,7 +111,9 @@
         "column": {
             "split_order_type": true,
             "split_order_parent_id": true,
-            "has_integrated_omnik": true
+            "has_integrated_omnik": true,
+            "estimated_delivery_business_days": true,
+            "estimated_delivery_time_type": true
         }
     },
     "quote": {

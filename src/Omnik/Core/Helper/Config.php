@@ -152,11 +152,32 @@ class Config extends AbstractHelper
      */
     public function getToken($storeId): string
     {
-        $encrypted = $this->scopeConfig->getValue(self::PATH_TOKEN, ScopeInterface::SCOPE_STORE, $storeId);
-        if (empty($encrypted)) {
+        $stored = $this->scopeConfig->getValue(self::PATH_TOKEN, ScopeInterface::SCOPE_STORE, $storeId);
+        if (empty($stored)) {
             return '';
         }
-        return (string)$this->encryptor->decrypt($encrypted);
+
+        // Values written by Magento's Encrypted backend model carry a "N:N:" prefix.
+        // Dumps that seed the token in plain text (no prefix) must NOT be decrypted:
+        // decrypt() would treat the plain value as ciphertext and return binary garbage
+        // with control bytes, which Laminas then rejects as "Invalid header value detected".
+        if (!$this->isMagentoEncrypted((string)$stored)) {
+            return (string)$stored;
+        }
+
+        return (string)$this->encryptor->decrypt($stored);
+    }
+
+    /**
+     * Whether a stored config value was produced by Magento's encryptor
+     * (i.e. carries the "<keyVersion>:<cipherVersion>:" prefix).
+     *
+     * @param string $value
+     * @return bool
+     */
+    private function isMagentoEncrypted(string $value): bool
+    {
+        return (bool)preg_match('/^[0-9]+:[0-9]+:/', $value);
     }
 
     /**

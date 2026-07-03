@@ -33,4 +33,11 @@ interface ShippingAmountInterface
      */
     public function getAmountWhenOmnikError(Quote $quote, array $quotes): float;
 
+    /**
+     * @param Order $order
+     * @param Quote $quote
+     * @return array
+     */
+    public function resolveEstimatedDelivery(Order $order, Quote $quote): array;
+
 }

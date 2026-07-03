@@ -7,6 +7,7 @@ namespace Omnik\Core\Model\Cron\SaveHandler;
 use Exception;
 use Omnik\Core\Helper\ApiResponse;
 use Omnik\Core\Model\Integration\Product\GetProductsModerated;
+use Omnik\Core\Model\Integration\Product\PublishResultBuilder;
 use Omnik\Core\Api\Data\NotifyProductModerationDataInterface;
 use Omnik\Core\Api\ProductHandlerInterface;
 use Omnik\Core\Helper\Product\Data;
@@ -71,6 +72,11 @@ class Integrate implements ProductHandlerInterface
     private ApiResponse $apiResponse;
 
     /**
+     * @var PublishResultBuilder
+     */
+    private PublishResultBuilder $publishResultBuilder;
+
+    /**
      * @param GetProductsModerated $getProductsModerated
      * @param IntegrationProduct $integrationProduct
      * @param NotifyProductModerationDataInterface $notifyProductModerationData
@@ -91,7 +97,8 @@ class Integrate implements ProductHandlerInterface
         CreateProduct                        $createProduct,
         ProductRepositoryInterface           $productRepository,
         Configurable                         $configurableType,
-        ApiResponse                          $apiResponse
+        ApiResponse                          $apiResponse,
+        PublishResultBuilder                 $publishResultBuilder
     ) {
         $this->getProductsModerated = $getProductsModerated;
         $this->integrationProduct = $integrationProduct;
@@ -103,6 +110,7 @@ class Integrate implements ProductHandlerInterface
         $this->productRepository = $productRepository;
         $this->configurableType = $configurableType;
         $this->apiResponse = $apiResponse;
+        $this->publishResultBuilder = $publishResultBuilder;
     }
 
     /**
@@ -135,6 +143,11 @@ class Integrate implements ProductHandlerInterface
                         $this->createProduct->isConfigurableProductExists($productModeratedData)) {
 
                         if (!$this->createProduct->hasNewSimpleProducts($productModeratedData, $storeId)) {
+                            // Product (configurable + all simples) already exists: nothing new to
+                            // create, but Omnik still expects the "published" confirmation. Without
+                            // this the product stays INTEGRATED in Magento while Omnik never learns
+                            // it was published (the reported "publish event never sent" issue).
+                            $this->sendPublishedResult($productModeratedData, $storeId);
                             $this->notifyProductModerationData->changeStatusNotify($idNotify, NotifyProductModerationDataInterface::STATUS_INTEGRATED);
                             continue;
                         }
@@ -147,43 +160,7 @@ class Integrate implements ProductHandlerInterface
                     $this->integrationProduct->integrate($productModeratedData, $storeId, $configurableExists);
                     $this->notifyProductModerationData->changeStatusNotify($idNotify, NotifyProductModerationDataInterface::STATUS_INTEGRATED);
 
-                    $configurableSku = $this->createProduct->getConfigurableSku($productModeratedData);
-                    $configurableProduct = $this->getConfigurableProductBySku($configurableSku);
-
-                    if ($configurableProduct === null) {
-                        throw new \RuntimeException(
-                            'Configurable product not found after integration. SKU: ' . $configurableSku
-                        );
-                    }
-
-                    $childProducts = $this->getChildProducts($configurableProduct->getId());
-
-                    $childProductSend = [];
-                    if ($childProducts) {
-                        foreach ($childProducts as $childProduct) {
-                            $childProductSend = [
-                                "message" => "publicado",
-                                "marketplaceId" => $childProduct['sku'],
-                                "skuid" => $childProduct['sku']
-                            ];
-                        }
-                    }
-
-                    $simpleSkuProducts = [
-                        "message" => "publicado",
-                        "marketplaceId" => $configurableProduct->getSku(),
-                        "skuId" => $childProductSend
-                    ];
-
-                    $productData = [
-                        'productId' => $productModeratedData['productData']['id'],
-                        'marketplaceId' => $configurableSku,
-                        'result' => NotifyProductModerationDataInterface::STATUS_INTEGRATED,
-                        'message' => 'PRODUCT PUBLISHED',
-                        'skus' => $simpleSkuProducts
-                    ];
-
-                    $this->productHelper->publishResult($productData, $storeId);
+                    $this->sendPublishedResult($productModeratedData, $storeId);
                 } catch (\Throwable $e) {
                     $error = "Product NOT INTEGRATED error: " . $e->getMessage() . ' - STORE: ' . $storeId .
                         ' - ' . $e->getFile() . ' - ' . $e->getLine();
@@ -196,20 +173,21 @@ class Integrate implements ProductHandlerInterface
                         $productModeratedData
                     );
 
-                    $skuNotPublishData = [];
-
-                    foreach ($productModeratedData['skus'] as $productData) {
-                        $skuNotPublishData[] = [
-                            'skuId' => $productData['skuData']['id']
-                        ];
+                    // not-published: per contract, each sku carries only result + skuId (Omnik id),
+                    // without marketplaceId (the Magento product may not have been created).
+                    $skus = [];
+                    foreach ($productModeratedData['skus'] as $sku) {
+                        $skus[] = $this->publishResultBuilder->skuResult(
+                            PublishResultBuilder::RESULT_NOT_PUBLISHED,
+                            (string)($sku['skuData']['id'] ?? '')
+                        );
                     }
 
-                    $notPublishProductData = [
-                        'productId' => $productModeratedData['productData']['id'],
-                        'result' => NotifyProductModerationDataInterface::RESULT_NOT_PUBLISHED,
-                        'message' => $e->getMessage(),
-                        'skus' => $skuNotPublishData
-                    ];
+                    $notPublishProductData = $this->publishResultBuilder->buildNotPublished(
+                        (string)$productModeratedData['productData']['id'],  // Omnik product id
+                        '',                                                  // no reliable Magento id on failure
+                        $skus
+                    );
 
                     $notPublishLog = $this->json->serialize($notPublishProductData);
                     $this->logger->info('PRODUCT NOT PUBLISHED: ' . $notPublishLog);
@@ -218,6 +196,47 @@ class Integrate implements ProductHandlerInterface
                 }
             }
         }
+    }
+
+    /**
+     * Build and send the "published" result to Omnik for an integrated product.
+     *
+     * Called on every success path — both when the product was just created and
+     * when it already existed — so Omnik always receives the publish confirmation
+     * for a product that is present in Magento.
+     *
+     * @param array $productModeratedData
+     * @param int $storeId
+     * @return void
+     */
+    private function sendPublishedResult(array $productModeratedData, int $storeId): void
+    {
+        $configurableSku = $this->createProduct->getConfigurableSku($productModeratedData);
+        $configurableProduct = $this->getConfigurableProductBySku($configurableSku);
+
+        if ($configurableProduct === null) {
+            throw new \RuntimeException(
+                'Configurable product not found after integration. SKU: ' . $configurableSku
+            );
+        }
+
+        $skus = [];
+        foreach ($productModeratedData['skus'] as $sku) {
+            $simpleProduct = $this->getProductSimple($sku, $storeId);
+            $skus[] = $this->publishResultBuilder->skuResult(
+                PublishResultBuilder::RESULT_PUBLISHED,
+                (string)($sku['skuData']['id'] ?? ''),               // Omnik sku id
+                $simpleProduct ? (string)$simpleProduct->getId() : '' // Magento sku entity_id
+            );
+        }
+
+        $productData = $this->publishResultBuilder->buildPublished(
+            (string)$productModeratedData['productData']['id'],  // Omnik product id
+            (string)$configurableProduct->getId(),               // Magento product entity_id
+            $skus
+        );
+
+        $this->productHelper->publishResult($productData, $storeId);
     }
 
     /**

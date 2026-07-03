@@ -3,7 +3,9 @@
 namespace Omnik\Core\Model;
 
 use Omnik\Core\Model\Carrier\Method;
+use Omnik\Core\Model\Shipping\DeliveryEstimate;
 use Omnik\Core\Api\ShippingAmountInterface;
+use Omnik\Core\Api\SplitOrderInterface;
 use Omnik\Core\Helper\SplitOrder\Data as SplitHelper;
 use Magento\Quote\Model\Quote;
 use Magento\Quote\Model\Quote\Item;
@@ -83,5 +85,82 @@ class ShippingAmount implements ShippingAmountInterface
     {
         $shippingTotals = $quote->getShippingAddress()->getShippingAmount();
         return (float)($shippingTotals / count($quotes));
+    }
+
+    /**
+     * Resolve o prazo de entrega estimado da rate Omnik selecionada para o
+     * quote informado, retornando os dias e o tipo de prazo.
+     *
+     * O quote pai carrega o shipping_method completo; cada quote/pedido
+     * (único ou filho) é associado a um tenant. Para um pedido filho, a
+     * rate é resolvida a partir do shipping_method e do quote do pai.
+     *
+     * Retorna ['business_days' => int|null, 'time_type' => string|null].
+     * Os dois campos vêm nulos quando não há rate Omnik aplicável (ex.: o
+     * seller da cotação não é dono do SKU do pedido).
+     *
+     * @param Order $order
+     * @param Quote $quote
+     * @return array
+     * @throws \Magento\Framework\Exception\NoSuchEntityException
+     */
+    public function resolveEstimatedDelivery(Order $order, Quote $quote): array
+    {
+        $empty = ['business_days' => null, 'time_type' => null];
+
+        $items = $order->getItems();
+        if (empty($items)) {
+            return $empty;
+        }
+
+        $item = current($items);
+        $tenant = $this->splitHelper->getTenantByProductSku($item->getSku());
+
+        // Para pedido filho (split), o shipping_method completo e o quote
+        // ficam no pedido pai; para pedido único, vêm do próprio quote.
+        $parentOrderId = $quote->getData(SplitOrderInterface::SPLIT_ORDER_PARENT_ID);
+        if (!empty($parentOrderId)) {
+            $parentOrder = $this->splitHelper->getOrderParent($quote);
+            $shippingMethod = $parentOrder->getShippingMethod();
+            $quoteId = (int)$parentOrder->getQuoteId();
+        } else {
+            $shippingMethod = $quote->getShippingAddress()->getShippingMethod();
+            $quoteId = (int)$quote->getId();
+        }
+
+        if (empty($shippingMethod)
+            || !$this->splitHelper->isOmnikShipping($shippingMethod)
+            || $this->splitHelper->isContigency($shippingMethod, $tenant)) {
+            return $empty;
+        }
+
+        $rateSelected = $this->splitHelper->getOmnikRateSelected($shippingMethod, $tenant, $quoteId);
+
+        return $this->extractEstimatedDelivery($rateSelected);
+    }
+
+    /**
+     * Extrai o prazo de entrega da rate selecionada.
+     *
+     * O prazo vem de `deliveryEstimateBusinessDays` e o tipo
+     * (`bd` = dias úteis, `d` = dias) de `deliveryTimeType`.
+     * O valor de dias permanece nulo quando o seller da cotação não é dono do SKU.
+     *
+     * @param array $rateSelected
+     * @return array
+     */
+    private function extractEstimatedDelivery(array $rateSelected): array
+    {
+        $businessDays = DeliveryEstimate::resolveDays($rateSelected);
+        $timeType = $rateSelected['deliveryTimeType'] ?? null;
+
+        if ($businessDays === null) {
+            return ['business_days' => null, 'time_type' => null];
+        }
+
+        return [
+            'business_days' => $businessDays,
+            'time_type' => $timeType !== null ? (string)$timeType : null,
+        ];
     }
 }
