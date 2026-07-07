@@ -5,6 +5,9 @@
         <job name="create_omnik_status_order" instance="Omnik\Core\Cron\Orders\CronChangeOrderStatus" method="execute">
             <schedule>*/2 * * * *</schedule>
         </job>
+        <job name="omnik_process_order_status_queue" instance="Omnik\Core\Cron\Orders\CronProcessOrderStatusQueue" method="execute">
+            <schedule>*/1 * * * *</schedule>
+        </job>
     </group>
     <group id="omnik_notify">
         <job name="create_integration_product_attributes" instance="Omnik\Core\Cron\Product\CronProductAttribute" method="execute">

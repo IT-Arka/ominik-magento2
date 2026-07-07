@@ -1,4 +1,27 @@
 {
+    "omnik_order_status_queue": {
+        "column": {
+            "entity_id": true,
+            "order_id": true,
+            "increment_id": true,
+            "store_id": true,
+            "is_approved": true,
+            "status": true,
+            "attempts": true,
+            "error_body": true,
+            "worker_token": true,
+            "created_at": true,
+            "updated_at": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "OMNIK_ORDER_STATUS_QUEUE_ORDER_ID": true
+        },
+        "index": {
+            "OMNIK_ORDER_STATUS_QUEUE_STATUS": true,
+            "OMNIK_ORDER_STATUS_QUEUE_WORKER_TOKEN": true
+        }
+    },
     "omnik_notify_omnik": {
         "column": {
             "entity_id": true,
@@ -19,10 +42,15 @@
             "price": true,
             "stock": true,
             "error_body": true,
-            "attempts": true
+            "attempts": true,
+            "worker_token": true
         },
         "constraint": {
             "PRIMARY": true
+        },
+        "index": {
+            "OMNIK_NOTIFY_OMNIK_STATUS_RESOURCE_TYPE": true,
+            "OMNIK_NOTIFY_OMNIK_WORKER_TOKEN": true
         }
     },
     "omnik_seller": {
@@ -125,6 +153,44 @@
     "sales_order_grid": {
         "column": {
             "has_integrated_omnik": true
+        }
+    },
+    "omnik_core_status_mapping": {
+        "column": {
+            "entity_id": true,
+            "omnik_status": true,
+            "adobe_status": true,
+            "is_active": true,
+            "created_at": true,
+            "updated_at": true
+        },
+        "index": {
+            "OMNIK_CORE_STATUS_MAPPING_OMNIK_STATUS": true,
+            "OMNIK_CORE_STATUS_MAPPING_ADOBE_STATUS": true,
+            "OMNIK_CORE_STATUS_MAPPING_IS_ACTIVE": true,
+            "OMNIK_CORE_STATUS_MAPPING_CREATED_AT": true,
+            "OMNIK_CORE_STATUS_MAPPING_UPDATED_AT": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "OMNIK_CORE_STATUS_MAPPING_OMNIK_STATUS_ADOBE_STATUS": true
+        }
+    },
+    "omnik_variant_attribute_map": {
+        "column": {
+            "entity_id": true,
+            "omnik_variant": true,
+            "attribute_code": true,
+            "is_active": true,
+            "created_at": true,
+            "updated_at": true
+        },
+        "index": {
+            "OMNIK_VARIANT_ATTRIBUTE_MAP_IS_ACTIVE": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "OMNIK_VARIANT_ATTRIBUTE_MAP_OMNIK_VARIANT": true
         }
     }
 }

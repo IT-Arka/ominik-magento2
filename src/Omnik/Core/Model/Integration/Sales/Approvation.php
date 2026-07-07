@@ -4,9 +4,9 @@ namespace Omnik\Core\Model\Integration\Sales;
 
 use Omnik\Core\Helper\Config as ConfigHelper;
 use Omnik\Core\Helper\StatusMapping as StatusMappingHelper;
-use Omnik\Core\Model\Integration\Order\SendStatus;
 use Omnik\Core\Logger\Logger;
 use Omnik\Core\Model\Integration\Params;
+use Omnik\Core\Model\Order\StatusQueue\Enqueue;
 use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 
@@ -18,9 +18,9 @@ class Approvation
     private Params $params;
 
     /**
-     * @var SendStatus
+     * @var Enqueue
      */
-    private SendStatus $sendStatus;
+    private Enqueue $enqueue;
 
     /**
      * @var ProductRepositoryInterface
@@ -44,7 +44,7 @@ class Approvation
 
     /**
      * @param Params $params
-     * @param SendStatus $sendStatus
+     * @param Enqueue $enqueue
      * @param ProductRepositoryInterface $productRepositoryInterface
      * @param Logger $salesLogger
      * @param StatusMappingHelper $statusMappingHelper
@@ -52,14 +52,14 @@ class Approvation
      */
     public function __construct(
         Params                     $params,
-        SendStatus                 $sendStatus,
+        Enqueue                    $enqueue,
         ProductRepositoryInterface $productRepositoryInterface,
         Logger                     $salesLogger,
         StatusMappingHelper        $statusMappingHelper,
         ConfigHelper               $configHelper
     ) {
         $this->params = $params;
-        $this->sendStatus = $sendStatus;
+        $this->enqueue = $enqueue;
         $this->productRepositoryInterface = $productRepositoryInterface;
         $this->salesLogger = $salesLogger;
         $this->_statusMappingHelper = $statusMappingHelper;
@@ -67,22 +67,23 @@ class Approvation
     }
 
     /**
+     * Enfileira o envio outbound do status (approved/not-approved) em vez de enviar de forma
+     * síncrona. Isso resolve a corrida com o POST de pedido novo: o cron da fila só envia o PUT
+     * depois que a integração do pedido é confirmada na Omnik (has_integrated_omnik = 1).
+     *
      * @param $order
      * @return void
      */
     public function integrate($order)
     {
         try {
-            $storeId = (int)$order->getStoreId();
-            $tenant  = $this->getTenant($order);
-            $params  = $this->params->createParametersForUpdate($order);
-
             if ($this->isApproved($order)) {
-                $this->sendStatus->execute($params, $tenant, $storeId, $order->getIncrementId(), true);
+                $this->enqueue->execute($order, true);
+                return;
             }
 
             if ($this->isNotApproved($order)) {
-                $this->sendStatus->execute($params, $tenant, $storeId, $order->getIncrementId(), false);
+                $this->enqueue->execute($order, false);
             }
         } catch (\Exception $e) {
             $this->salesLogger->error($e->getMessage());

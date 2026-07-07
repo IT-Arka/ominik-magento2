@@ -37,6 +37,35 @@
 
     </table>
 
+    <table name="omnik_order_status_queue" resource="default" engine="innodb" comment="Omnik Outbound Order Status Queue">
+        <column xsi:type="int" name="entity_id" padding="11" unsigned="true" nullable="false" identity="true" comment="Entity Id"/>
+        <column xsi:type="int" name="order_id" padding="11" unsigned="true" nullable="false" comment="Magento Order Entity Id"/>
+        <column xsi:type="varchar" name="increment_id" length="50" nullable="false" comment="Order Increment Id (Omnik marketplaceId)"/>
+        <column xsi:type="smallint" name="store_id" unsigned="true" nullable="false" default="1" comment="Store Id"/>
+        <column xsi:type="smallint" name="is_approved" unsigned="true" nullable="false" default="1" comment="1=APPROVED, 0=NOT_APPROVED/CANCELED"/>
+        <column xsi:type="int" name="status" padding="11" unsigned="true" nullable="false" default="0" comment="0=PENDING, 1=SENT, 2=ERROR"/>
+        <column xsi:type="smallint" name="attempts" unsigned="false" nullable="false" default="0" comment="Attempts"/>
+        <column xsi:type="text" name="error_body" nullable="true" comment="Last Error Body"/>
+        <column xsi:type="varchar" name="worker_token" length="64" nullable="true" comment="Atomic claim token for cron workers"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Created At"/>
+        <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" comment="Updated At"/>
+
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="entity_id"/>
+        </constraint>
+
+        <constraint xsi:type="unique" referenceId="OMNIK_ORDER_STATUS_QUEUE_ORDER_ID">
+            <column name="order_id"/>
+        </constraint>
+
+        <index referenceId="OMNIK_ORDER_STATUS_QUEUE_STATUS" indexType="btree">
+            <column name="status"/>
+        </index>
+        <index referenceId="OMNIK_ORDER_STATUS_QUEUE_WORKER_TOKEN" indexType="btree">
+            <column name="worker_token"/>
+        </index>
+    </table>
+
     <table name="omnik_seller" resource="default" engine="innodb" comment="Omnik Seller">
         <column xsi:type="int" name="entity_id" padding="11" unsigned="true" nullable="false" identity="true" comment="Entity Id" />
         <column xsi:type="varchar" name="omnik_id" length="25" nullable="false" comment="Omnik Seller Id" />
