@@ -10,6 +10,7 @@ use Omnik\Core\Helper\Config as IntegrationHelper;
 use Omnik\Core\Helper\Telephone;
 use Omnik\Core\Logger\Logger;
 use Omnik\Core\Api\SplitOrderInterface;
+use Omnik\Core\Helper\SplitOrder\Data as SplitHelper;
 use Omnik\Core\Model\ShippingAmount;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\OrderFactory;
@@ -60,7 +61,8 @@ class Params
         private readonly ShippingAmount              $shippingAmount,
         private readonly OrderFactory                $orderFactory,
         private readonly OrderRepositoryInterface    $orderRepository,
-        private readonly TimezoneInterface           $timezone
+        private readonly TimezoneInterface           $timezone,
+        private readonly SplitHelper                 $splitHelper
     ) {
 
     }
@@ -428,22 +430,71 @@ class Params
     }
 
     /**
-     * @param mixed $order
-     * @return array{deliveryEstimateBusinessDays: string, deliveryMethodId: mixed, description: mixed, quotationId: mixed}
+     * Resolve os dados de entrega de um pedido ÚNICO (não-split) a serem
+     * enviados à Omnik.
+     *
+     * A Omnik/Intelipost exigem o `quotationId` e o `deliveryMethodId` REAIS
+     * da cotação gerada pela Omnik — não o shipping_method sintético do
+     * Magento (`omnik_<tenant>-<id>`). Esses valores ficam persistidos no
+     * `body` da rate salva em `omnik_freight_rates`, indexada por
+     * (quote_id, delivery_method_id, seller_tenant). Reaproveitamos a mesma
+     * resolução usada pelo fluxo de split (`getOmnikRateSelected`) para manter
+     * uma regra única entre pedido único e pedido filho.
+     *
+     * Fallback: quando não há rate Omnik aplicável (frete de contingência ou
+     * método não-Omnik), mantém-se o shipping_method do Magento como antes,
+     * garantindo que o envio não quebre para esses casos.
+     *
+     * @param Order|OrderInterface $order
+     * @return array{deliveryEstimateBusinessDays: mixed, deliveryMethodId: mixed, description: mixed, quotationId: mixed, logisticProviderName?: mixed}
      */
     private function getDeliveryAddress($order): array
     {
-        // $order = $this->orderRepository->get($order->getId());
-        $shippingMethod = $order->getShippingMethod();
-        $shippingMethodCode = $order->getShippingMethod(true)->getMethod();
+        $shippingMethod      = (string)$order->getShippingMethod();
+        $shippingMethodCode  = $order->getShippingMethod(true)->getMethod();
         $shippingDescription = $order->getShippingDescription();
 
-        return [
+        $fallback = [
             'deliveryMethodId' => $shippingMethodCode,
             'description' => $shippingDescription,
             'deliveryEstimateBusinessDays' => '',
             'quotationId' => $shippingMethod
         ];
+
+        try {
+            $item = current($order->getItems());
+            if (!$item) {
+                return $fallback;
+            }
+
+            $tenant = $this->splitHelper->getTenantByProductSku((string)$item->getSku());
+
+            if (!$this->splitHelper->isOmnikShipping($shippingMethod)
+                || $this->splitHelper->isContigency($shippingMethod, $tenant)) {
+                return $fallback;
+            }
+
+            $rate = $this->splitHelper->getOmnikRateSelected(
+                $shippingMethod,
+                $tenant,
+                (int)$order->getQuoteId()
+            );
+
+            if (empty($rate) || empty($rate['quotationId'])) {
+                return $fallback;
+            }
+
+            return [
+                'deliveryMethodId' => $rate['deliveryMethodId'] ?? $shippingMethodCode,
+                'description' => $rate['description'] ?? $shippingDescription,
+                'deliveryEstimateBusinessDays' => $rate['deliveryEstimateBusinessDays'] ?? '',
+                'quotationId' => $rate['quotationId'],
+                'logisticProviderName' => $rate['logisticProviderName'] ?? ''
+            ];
+        } catch (\Exception $e) {
+            $this->logger->error('Omnik getDeliveryAddress: ' . $e->getMessage());
+            return $fallback;
+        }
     }
 
     /**
