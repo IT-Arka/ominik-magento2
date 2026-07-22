@@ -106,15 +106,26 @@ class IntegrationSalesOmnik implements ObserverInterface
      */
     public function execute(Observer $observer)
     {
-        try {
-            $orders = $observer->getEvent()->getData('orders');
-            if (!empty($orders)) {
-                foreach ($orders as $order) {
-                    $this->integrateOrder($order);
-                }
+        $orders = $observer->getEvent()->getData('orders');
+        if (empty($orders)) {
+            return;
+        }
+
+        // Isolate each order: a failure integrating one child (e.g. a product
+        // missing the tenant attribute) must never abort the integration of its
+        // split siblings. A single external try/catch here would let one child's
+        // NoSuchEntityException skip every remaining order in the same dispatch.
+        foreach ($orders as $order) {
+            try {
+                $this->integrateOrder($order);
+            } catch (\Throwable $e) {
+                $this->salesLogger->error(sprintf(
+                    'Falha ao integrar pedido %s (split_parent_id: %s): %s',
+                    method_exists($order, 'getIncrementId') ? (string)$order->getIncrementId() : '?',
+                    method_exists($order, 'getSplitOrderParentId') ? (string)$order->getSplitOrderParentId() : '?',
+                    $e->getMessage()
+                ));
             }
-        } catch (Exception $e) {
-            $this->salesLogger->error($e->getMessage());
         }
     }
 
