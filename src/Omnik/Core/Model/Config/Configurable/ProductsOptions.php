@@ -144,9 +144,53 @@ class ProductsOptions
         $itemsByVendor = [];
         foreach ($items as $item) {
             $seller = $this->getDescriptionOptionAttributes($item);
+
+            // Produto simples avulso (sem pai configurável) cadastrado com variant_seller:
+            // getDescriptionOptionAttributes só resolve seller via super_attribute de
+            // configurável, então retorna "" para esses itens e o split os descartava.
+            // Filhos de configurável NÃO entram aqui — getSimpleItemsByVendor (frete)
+            // depende deles permanecerem no grupo vazio.
+            if ($seller === '' && $this->isStandaloneSimple($item)) {
+                $seller = $this->resolveSellerFromProduct($item);
+            }
+
             $itemsByVendor[$seller][] = $item;
         }
         return $itemsByVendor;
+    }
+
+    /**
+     * Item simples vendido diretamente (não é filho de configurável nem tem filhos).
+     *
+     * @param Item $item
+     * @return bool
+     */
+    private function isStandaloneSimple(Item $item): bool
+    {
+        return $item->getParentItemId() === null && !$item->getHasChildren();
+    }
+
+    /**
+     * Resolve o seller lendo o atributo variant_seller direto do produto simples,
+     * reaproveitando o mesmo mapeamento (código -> fantasy_name) usado no fluxo de
+     * configurável. Retorna "" quando o produto não tem o atributo preenchido,
+     * preservando o comportamento atual (item fica no grupo vazio).
+     *
+     * @param Item $item
+     * @return string
+     * @throws NoSuchEntityException
+     */
+    private function resolveSellerFromProduct(Item $item): string
+    {
+        $product    = $item->getProduct();
+        $attrCode   = $this->configHelper->getAttrVariantSeller();
+        $sellerCode = (int)($product->getCustomAttribute($attrCode)?->getValue() ?? 0);
+
+        if ($sellerCode === 0) {
+            return "";
+        }
+
+        return $this->getSellerFantasy($sellerCode);
     }
 
     /**

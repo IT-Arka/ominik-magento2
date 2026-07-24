@@ -152,10 +152,39 @@ class SplitQuote
             return [];
         }
 
+        $this->logDiscardedItems($currentQuote, $quotes);
+
         return array_filter(
             $quotes,
             fn ($key) => !empty($key),
             ARRAY_FILTER_USE_KEY
+        );
+    }
+
+    /**
+     * Itens agrupados sob a chave vazia são descartados do split (não têm seller
+     * resolvido). Historicamente isso era silencioso: um produto que não splitava
+     * sumia sem rastro. Aqui o descarte é registrado em WARNING para diagnóstico.
+     *
+     * @param mixed $currentQuote
+     * @param array $quotes
+     * @return void
+     */
+    private function logDiscardedItems($currentQuote, array $quotes): void
+    {
+        if (empty($quotes[''])) {
+            return;
+        }
+
+        $skus = [];
+        foreach ($quotes[''] as $item) {
+            $skus[] = (string)$item->getSku();
+        }
+
+        $this->_logger->warning(
+            'Omnik SplitQuote: itens sem seller resolvido descartados do split: '
+            . implode(', ', $skus),
+            ['cart_id' => $currentQuote->getId()]
         );
     }
 

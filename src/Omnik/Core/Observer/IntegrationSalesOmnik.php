@@ -180,23 +180,64 @@ class IntegrationSalesOmnik implements ObserverInterface
     }
 
     /**
+     * Resolve o tenant do pedido a partir dos seus itens.
+     *
+     * Um pedido corretamente splitado tem itens de um único seller, logo um único
+     * tenant. Se o split falhar (ex.: produto não agrupado por seller), o pedido
+     * pode carregar itens de sellers distintos e este método passaria a atribuir
+     * o pedido inteiro ao tenant do primeiro item — silenciosamente e ao seller
+     * errado. Aqui isso é detectado e logado como ERROR, sem alterar o retorno.
+     *
      * @param $order
      * @return mixed
      * @throws NoSuchEntityException
      */
     public function getTenant($order)
     {
-        $storeId   = (int)$order->getStoreId();
-        $attrCode  = $this->_configHelper->getAttrTenant($storeId);
-        $item      = current($order->getItems())->getData();
-        $product   = $this->productRepositoryInterface->get($item['sku']);
-        $tenantVal = $product->getCustomAttribute($attrCode)?->getValue();
-        if (empty($tenantVal)) {
+        $storeId  = (int)$order->getStoreId();
+        $attrCode = $this->_configHelper->getAttrTenant($storeId);
+
+        $firstTenant = null;
+        $tenants     = [];
+
+        foreach ($order->getItems() as $item) {
+            $data = $item->getData();
+            $sku  = $data['sku'] ?? null;
+            if (empty($sku)) {
+                continue;
+            }
+
+            $product   = $this->productRepositoryInterface->get($sku);
+            $tenantVal = $product->getCustomAttribute($attrCode)?->getValue();
+
+            // Itens sem tenant (ex.: o pai configurável, cujos dados vivem na
+            // variação) não bloqueiam nem contam para a checagem de consistência.
+            if (empty($tenantVal)) {
+                continue;
+            }
+
+            $firstTenant ??= $tenantVal;
+            $tenants[(string)$tenantVal] = true;
+        }
+
+        if ($firstTenant === null) {
+            $firstData = current($order->getItems())->getData();
             throw new NoSuchEntityException(
-                __('Produto "%1" sem atributo "%2" (Tenant) preenchido.', $item['sku'], $attrCode)
+                __('Produto "%1" sem atributo "%2" (Tenant) preenchido.', $firstData['sku'] ?? '?', $attrCode)
             );
         }
-        return $tenantVal;
+
+        if (count($tenants) > 1) {
+            $this->salesLogger->error(sprintf(
+                'Pedido %s com itens de múltiplos tenants (%s) — split provavelmente '
+                . 'não separou os sellers; integrando sob o tenant "%s".',
+                (string)$order->getIncrementId(),
+                implode(', ', array_keys($tenants)),
+                (string)$firstTenant
+            ));
+        }
+
+        return $firstTenant;
     }
 
     /**
