@@ -12,6 +12,7 @@ use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\ConfigurableProduct\Model\Product\Type\Configurable;
 use Magento\Eav\Api\Data\AttributeOptionInterface;
 use Magento\Framework\Api\AttributeInterface;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Quote\Model\Quote\Item;
 use Omnik\Core\Helper\Config as ConfigHelper;
 use Omnik\Core\Model\Config\Configurable\ProductsOptions;
@@ -33,34 +34,70 @@ class ProductsOptionsTest extends TestCase
     private Repository $repository;
     /** @var ConfigHelper&MockObject */
     private ConfigHelper $configHelper;
+    /** @var ProductRepositoryInterface&MockObject */
+    private ProductRepositoryInterface $productRepository;
+
+    /**
+     * Mapa sku => variant_seller code, alimentado por cada teste. O productRepository
+     * resolve o produto por SKU (fonte de verdade), refletindo o comportamento real:
+     * o produto do quote item vem sem os atributos EAV hidratados.
+     *
+     * @var array<string,int>
+     */
+    private array $skuSellerMap = [];
+
+    /** @var array<string,string> map code => label das options de variant_seller */
+    private array $optionLabels = [];
 
     private ProductsOptions $productsOptions;
 
     protected function setUp(): void
     {
-        $this->repository   = $this->createMock(Repository::class);
-        $this->configHelper = $this->createMock(ConfigHelper::class);
+        $this->repository        = $this->createMock(Repository::class);
+        $this->configHelper      = $this->createMock(ConfigHelper::class);
+        $this->productRepository = $this->createMock(ProductRepositoryInterface::class);
 
         $this->configHelper->method('getAttrVariantSeller')->willReturn(self::VARIANT_SELLER_ATTR);
 
-        // getSellerFantasy() faz repository->get(attr)->getOptions(); mapeamos
-        // SELLER_CODE -> SELLER_LABEL para validar a resolução do seller.
-        $option = $this->createMock(AttributeOptionInterface::class);
-        $option->method('getValue')->willReturn((string)self::SELLER_CODE);
-        $option->method('getLabel')->willReturn(self::SELLER_LABEL);
+        $this->optionLabels = [
+            (string)self::SELLER_CODE   => self::SELLER_LABEL,
+            (string)self::SELLER_CODE_2 => self::SELLER_LABEL_2,
+        ];
 
-        $option2 = $this->createMock(AttributeOptionInterface::class);
-        $option2->method('getValue')->willReturn((string)self::SELLER_CODE_2);
-        $option2->method('getLabel')->willReturn(self::SELLER_LABEL_2);
-
+        // getSellerFantasy() faz repository->get(attr)->getOptions().
+        $options = [];
+        foreach ($this->optionLabels as $value => $label) {
+            $option = $this->createMock(AttributeOptionInterface::class);
+            $option->method('getValue')->willReturn($value);
+            $option->method('getLabel')->willReturn($label);
+            $options[] = $option;
+        }
         $attribute = $this->createMock(Attribute::class);
-        $attribute->method('getOptions')->willReturn([$option, $option2]);
+        $attribute->method('getOptions')->willReturn($options);
         $this->repository->method('get')->willReturn($attribute);
+
+        // productRepository->get($sku) resolve o produto conforme o skuSellerMap.
+        $this->productRepository->method('get')->willReturnCallback(
+            function (string $sku) {
+                if (!array_key_exists($sku, $this->skuSellerMap)) {
+                    throw new NoSuchEntityException(__('no product %1', $sku));
+                }
+                $code = $this->skuSellerMap[$sku];
+                $attr = null;
+                if ($code !== 0) {
+                    $attr = $this->createMock(AttributeInterface::class);
+                    $attr->method('getValue')->willReturn((string)$code);
+                }
+                $product = $this->createMock(ProductInterface::class);
+                $product->method('getCustomAttribute')->with(self::VARIANT_SELLER_ATTR)->willReturn($attr);
+                return $product;
+            }
+        );
 
         $this->productsOptions = new ProductsOptions(
             $this->createMock(Attribute::class),
             $this->repository,
-            $this->createMock(ProductRepositoryInterface::class),
+            $this->productRepository,
             $this->createMock(Configurable::class),
             $this->createMock(Product::class),
             $this->configHelper
@@ -68,11 +105,11 @@ class ProductsOptionsTest extends TestCase
     }
 
     /**
-     * Caso 2 (NOVO): simples avulso com variant_seller resolve o seller pelo produto.
+     * Caso 2 (NOVO): simples avulso com variant_seller resolve o seller pelo produto (por SKU).
      */
     public function testStandaloneSimpleWithVariantSellerIsGroupedBySeller(): void
     {
-        $item = $this->makeStandaloneSimple(self::SELLER_CODE);
+        $item = $this->makeStandaloneSimple('sku-vela', self::SELLER_CODE);
 
         $result = $this->productsOptions->separeItemsByVendor([$item]);
 
@@ -82,11 +119,11 @@ class ProductsOptionsTest extends TestCase
     }
 
     /**
-     * Caso 3: simples avulso SEM variant_seller permanece no grupo vazio (comportamento atual).
+     * Caso 3: simples avulso SEM variant_seller permanece no grupo vazio.
      */
     public function testStandaloneSimpleWithoutVariantSellerStaysInEmptyGroup(): void
     {
-        $item = $this->makeStandaloneSimple(0);
+        $item = $this->makeStandaloneSimple('sku-sem-seller', 0);
 
         $result = $this->productsOptions->separeItemsByVendor([$item]);
 
@@ -95,18 +132,14 @@ class ProductsOptionsTest extends TestCase
     }
 
     /**
-     * Caso 4 (CRÍTICO): filho de configurável NUNCA entra no fallback — permanece no
-     * grupo vazio para que getSimpleItemsByVendor (frete) continue funcionando.
+     * Caso 4 (CRÍTICO): filho de configurável NUNCA entra no fallback de avulso —
+     * permanece no grupo vazio para que getSimpleItemsByVendor (frete) funcione.
      */
-    public function testConfigurableChildNeverEntersFallback(): void
+    public function testConfigurableChildNeverEntersStandaloneFallback(): void
     {
-        // Filho tem parent_item_id preenchido: mesmo com variant_seller no produto,
-        // não deve ser resolvido pelo fallback.
-        $item = $this->makeItem(
-            hasChildren: false,
-            parentItemId: 130,
-            sellerCode: self::SELLER_CODE
-        );
+        // Filho tem parent_item_id: mesmo com variant_seller no produto, não deve
+        // ser resolvido pelo fallback de avulso.
+        $item = $this->makeItem('sku-filho', hasChildren: false, parentItemId: 130, sellerCode: self::SELLER_CODE);
 
         $result = $this->productsOptions->separeItemsByVendor([$item]);
 
@@ -116,31 +149,27 @@ class ProductsOptionsTest extends TestCase
     }
 
     /**
-     * Item que já tem filhos (configurável no carrinho) não é tratado como avulso;
-     * não deve chamar o fallback (getChildren vazio no mock => "" sem crash).
+     * Caso configurável (com filho): resolve o seller pelo SKU do filho quando o
+     * buyRequest não traz super_attribute — reproduz o cart que quebrava com TypeError.
      */
-    public function testItemWithChildrenIsNotTreatedAsStandalone(): void
+    public function testConfigurableResolvesSellerByChildSkuWhenBuyRequestMissing(): void
     {
-        $item = $this->makeItem(
-            hasChildren: true,
-            parentItemId: null,
-            sellerCode: self::SELLER_CODE
-        );
-        // getChildren() vazio => getDescriptionOptionAttributes retorna "".
-        $item->method('getChildren')->willReturn([]);
+        $child = $this->makeChild('sku-config-child', self::SELLER_CODE_2);
+        $parent = $this->makeConfigurableParent([$child]);
 
-        $result = $this->productsOptions->separeItemsByVendor([$item]);
+        $result = $this->productsOptions->separeItemsByVendor([$parent]);
 
-        $this->assertArrayHasKey('', $result);
+        $this->assertArrayHasKey(self::SELLER_LABEL_2, $result);
+        $this->assertSame([$parent], $result[self::SELLER_LABEL_2]);
     }
 
     /**
-     * Caso 5: carrinho misto com dois simples avulsos de sellers distintos gera 2 grupos.
+     * Caso 5: carrinho misto com dois avulsos de sellers distintos gera 2 grupos.
      */
     public function testMixedCartProducesTwoSellerGroups(): void
     {
-        $sellerA = $this->makeStandaloneSimple(self::SELLER_CODE);
-        $sellerB = $this->makeStandaloneSimple(self::SELLER_CODE_2);
+        $sellerA = $this->makeStandaloneSimple('sku-a', self::SELLER_CODE);
+        $sellerB = $this->makeStandaloneSimple('sku-b', self::SELLER_CODE_2);
 
         $result = $this->productsOptions->separeItemsByVendor([$sellerA, $sellerB]);
 
@@ -151,43 +180,84 @@ class ProductsOptionsTest extends TestCase
     }
 
     /**
-     * @param int $sellerCode variant_seller do produto (0 = ausente)
      * @return Item&MockObject
      */
-    private function makeStandaloneSimple(int $sellerCode): Item
+    private function makeStandaloneSimple(string $sku, int $sellerCode): Item
     {
-        return $this->makeItem(hasChildren: false, parentItemId: null, sellerCode: $sellerCode);
+        return $this->makeItem($sku, hasChildren: false, parentItemId: null, sellerCode: $sellerCode);
     }
 
     /**
+     * Cria um item de quote. Registra o SKU no skuSellerMap para o productRepository resolver.
+     *
      * @return Item&MockObject
      */
-    private function makeItem(bool $hasChildren, ?int $parentItemId, int $sellerCode): Item
+    private function makeItem(string $sku, bool $hasChildren, ?int $parentItemId, int $sellerCode): Item
     {
-        // getChildren/getProduct são métodos reais; getParentItemId/getHasChildren
+        $this->skuSellerMap[$sku] = $sellerCode;
+
+        // getChildren/getProduct/getSku são reais; getParentItemId/getHasChildren
         // são mágicos (via __call/DataObject), logo precisam de addMethods().
         $item = $this->getMockBuilder(Item::class)
             ->disableOriginalConstructor()
-            ->onlyMethods(['getChildren', 'getProduct'])
+            ->onlyMethods(['getChildren', 'getSku'])
             ->addMethods(['getParentItemId', 'getHasChildren'])
             ->getMock();
 
         $item->method('getChildren')->willReturn([]);
+        $item->method('getSku')->willReturn($sku);
         $item->method('getParentItemId')->willReturn($parentItemId);
         $item->method('getHasChildren')->willReturn($hasChildren);
 
-        $attribute = null;
-        if ($sellerCode !== 0) {
-            $attribute = $this->createMock(AttributeInterface::class);
-            $attribute->method('getValue')->willReturn((string)$sellerCode);
-        }
+        return $item;
+    }
 
-        $product = $this->createMock(ProductInterface::class);
-        $product->method('getCustomAttribute')
-            ->with(self::VARIANT_SELLER_ATTR)
-            ->willReturn($attribute);
+    /**
+     * Cria um item filho (dentro de um configurável) com SKU e seller resolvíveis.
+     *
+     * @return Item&MockObject
+     */
+    private function makeChild(string $sku, int $sellerCode): Item
+    {
+        $this->skuSellerMap[$sku] = $sellerCode;
 
-        $item->method('getProduct')->willReturn($product);
+        $child = $this->getMockBuilder(Item::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['getSku', 'getProduct'])
+            ->getMock();
+        $child->method('getSku')->willReturn($sku);
+
+        // Produto "leve" do quote: getOrderOptions sem info_buyRequest, forçando o
+        // fallback por SKU (o cenário que quebrava com TypeError).
+        $product = $this->getMockBuilder(Product::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['getTypeInstance'])
+            ->getMock();
+        $typeInstance = $this->getMockBuilder(\Magento\Catalog\Model\Product\Type\AbstractType::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['getOrderOptions'])
+            ->getMockForAbstractClass();
+        $typeInstance->method('getOrderOptions')->willReturn([]); // sem info_buyRequest
+        $product->method('getTypeInstance')->willReturn($typeInstance);
+        $child->method('getProduct')->willReturn($product);
+
+        return $child;
+    }
+
+    /**
+     * @param array<int,Item> $children
+     * @return Item&MockObject
+     */
+    private function makeConfigurableParent(array $children): Item
+    {
+        $item = $this->getMockBuilder(Item::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['getChildren'])
+            ->addMethods(['getParentItemId', 'getHasChildren'])
+            ->getMock();
+        $item->method('getChildren')->willReturn($children);
+        $item->method('getParentItemId')->willReturn(null);
+        $item->method('getHasChildren')->willReturn(true);
 
         return $item;
     }
