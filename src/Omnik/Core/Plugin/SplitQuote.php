@@ -96,27 +96,41 @@ class SplitQuote
                 // Se houver apenas um ou nenhum seller, não realizar o split
                 return $result;
             }
-            
-            if(!$payment) {
-                $payment = $currentQuote->getPayment()->setMethod(\Omnik\Core\Model\SplitOrderPayment::METHOD);
-            }
 
             foreach ($quotes as $seller => $items) {
-                $split = $this->createSplitForQuote($currentQuote, $result);
-                $split = $this->addItemsToQuote($items, $split);
-                $this->quoteHandler->populateQuote($quotes, $split, $items, $addresses, $payment);
+                // Cada seller é isolado: a falha de um não pode abortar o split dos demais.
+                // Antes, o try/catch envolvia o loop inteiro e o primeiro seller que
+                // falhasse impedia a criação de TODOS os filhos e o dispatch para a Omnik.
+                try {
+                    $split = $this->createSplitForQuote($currentQuote, $result);
+                    $split = $this->addItemsToQuote($items, $split);
+                    $this->quoteHandler->populateQuote($quotes, $split, $items, $addresses, $payment);
 
-                $order = $subject->submit($split);
-                if (!$order) {
-                    continue;
+                    $order = $subject->submit($split);
+                    if (!$order) {
+                        continue;
+                    }
+
+                    $this->saveSplitData($order->getId(), SplitOrderInterface::SPLIT_ORDER_TYPE_CHILD, $result);
+                    $childOrders[] = $order;
+                } catch (\Exception $e) {
+                    $this->_logger->error(
+                        'Omnik SplitQuote: falha ao criar pedido filho do seller "' . $seller . '": '
+                        . $e->getMessage(),
+                        ['cart_id' => $cartId, 'order_id' => $result, 'seller' => $seller]
+                    );
                 }
-
-                $this->saveSplitData($order->getId(), SplitOrderInterface::SPLIT_ORDER_TYPE_CHILD, $result);
-                $childOrders[] = $order;
             }
 
-            $this->eventManager->dispatch('omnik_omnik_submit_order', ['orders' => $childOrders]);
-
+            if (empty($childOrders)) {
+                $this->_logger->error(
+                    'Omnik SplitQuote: nenhum pedido filho foi criado; o pedido permanece único '
+                    . 'e não será integrado como split na Omnik.',
+                    ['cart_id' => $cartId, 'order_id' => $result, 'sellers' => count($quotes)]
+                );
+            } else {
+                $this->eventManager->dispatch('omnik_omnik_submit_order', ['orders' => $childOrders]);
+            }
         } catch (\Exception $e) {
             $this->_logger->error(
                 'Omnik SplitQuote (split step) failed: ' . $e->getMessage(),

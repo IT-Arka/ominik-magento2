@@ -177,21 +177,26 @@ class QuoteHandler implements QuoteHandlerInterface
     }
 
     /**
+     * Pedidos filho são sempre offline: a cobrança acontece uma única vez, no pedido
+     * pai, pelo gateway real. Propagar o método do pai (ex.: pagarme_creditcard) para
+     * o filho fazia o gateway validar um quote recém-criado, sem totais consolidados
+     * nem contexto de sessão do cartão — o método era recusado ("não está disponível")
+     * e o split inteiro morria. Pior: se a validação passasse, o filho cobraria de novo.
+     *
+     * O método do pai é ignorado de propósito, e nenhum dado de pagamento é importado
+     * para o filho.
+     *
      * @param Quote $split
-     * @param string $paymentMethod
+     * @param string $paymentMethod Método do pedido pai; mantido na assinatura por
+     *                              compatibilidade, mas deliberadamente não aplicado ao filho.
      * @param PaymentInterface|null $payment
      * @return QuoteHandlerInterface
      * @throws \Magento\Framework\Exception\LocalizedException
      */
     public function setPaymentMethod(Quote $split, string $paymentMethod, ?PaymentInterface $payment = null): QuoteHandlerInterface
     {
-        $split->getPayment()->setMethod($paymentMethod);
+        $split->getPayment()->setMethod(SplitOrderPayment::METHOD);
 
-        if (!is_null($payment)) {
-            $split->getPayment()->setQuote($split);
-            $data = $payment->getData();
-            $split->getPayment()->importData($data);
-        }
         return $this;
     }
 
