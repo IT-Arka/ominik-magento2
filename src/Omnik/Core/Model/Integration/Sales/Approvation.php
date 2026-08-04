@@ -2,11 +2,13 @@
 
 namespace Omnik\Core\Model\Integration\Sales;
 
+use Omnik\Core\Api\SplitOrderInterface;
 use Omnik\Core\Helper\Config as ConfigHelper;
 use Omnik\Core\Helper\StatusMapping as StatusMappingHelper;
 use Omnik\Core\Logger\Logger;
 use Omnik\Core\Model\Integration\Params;
 use Omnik\Core\Model\Order\StatusQueue\Enqueue;
+use Omnik\Core\Model\Order\StatusQueue\IntegratedChildOrders;
 use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 
@@ -49,6 +51,7 @@ class Approvation
      * @param Logger $salesLogger
      * @param StatusMappingHelper $statusMappingHelper
      * @param ConfigHelper $configHelper
+     * @param IntegratedChildOrders $childOrders
      */
     public function __construct(
         Params                     $params,
@@ -56,7 +59,8 @@ class Approvation
         ProductRepositoryInterface $productRepositoryInterface,
         Logger                     $salesLogger,
         StatusMappingHelper        $statusMappingHelper,
-        ConfigHelper               $configHelper
+        ConfigHelper               $configHelper,
+        private readonly IntegratedChildOrders $childOrders
     ) {
         $this->params = $params;
         $this->enqueue = $enqueue;
@@ -71,6 +75,14 @@ class Approvation
      * síncrona. Isso resolve a corrida com o POST de pedido novo: o cron da fila só envia o PUT
      * depois que a integração do pedido é confirmada na Omnik (has_integrated_omnik = 1).
      *
+     * Quem é enfileirado depende do pedido ter sido splitado, porque quem existe na Omnik
+     * é sempre quem recebeu o POST de pedido novo:
+     *  - Pedido split (pai): quem foi integrado são os FILHOS (um por seller, cada um com seu
+     *    increment_id como marketplaceId). O pai nunca é enviado à Omnik e nunca recebe
+     *    has_integrated_omnik=1, então enfileirá-lo trava a fila no gate para sempre.
+     *    Aprovado o pagamento no pai, o status de pago é enfileirado para cada filho.
+     *  - Pedido único (sem split): o próprio pedido foi integrado; enfileira ele mesmo.
+     *
      * @param $order
      * @return void
      */
@@ -78,15 +90,50 @@ class Approvation
     {
         try {
             if ($this->isApproved($order)) {
-                $this->enqueue->execute($order, true);
+                $this->enqueueTarget($order, true);
                 return;
             }
 
             if ($this->isNotApproved($order)) {
-                $this->enqueue->execute($order, false);
+                $this->enqueueTarget($order, false);
             }
         } catch (\Exception $e) {
             $this->salesLogger->error($e->getMessage());
+        }
+    }
+
+    /**
+     * Enfileira o pedido correto conforme o cenário (split x pedido único).
+     *
+     * @param $order
+     * @param bool $isApproved
+     * @return void
+     */
+    private function enqueueTarget($order, bool $isApproved): void
+    {
+        if ((string)$order->getData(SplitOrderInterface::SPLIT_ORDER_TYPE)
+            !== SplitOrderInterface::SPLIT_ORDER_TYPE_PARENT
+        ) {
+            // Cenário sem split (ou o próprio filho já sendo tratado): fluxo normal.
+            $this->enqueue->execute($order, $isApproved);
+            return;
+        }
+
+        $children = $this->childOrders->getIntegratedChildren((int)$order->getEntityId());
+
+        if (empty($children)) {
+            // Sem filho integrado não há o que confirmar na Omnik. Não enfileira o pai:
+            // ele não existe lá e só travaria no gate até estourar as tentativas.
+            $this->salesLogger->error(sprintf(
+                'Omnik Approvation: pedido split %s aprovado, mas nenhum pedido filho '
+                . 'integrado na Omnik foi encontrado; status de pagamento não enfileirado.',
+                (string)$order->getIncrementId()
+            ));
+            return;
+        }
+
+        foreach ($children as $child) {
+            $this->enqueue->execute($child, $isApproved);
         }
     }
 

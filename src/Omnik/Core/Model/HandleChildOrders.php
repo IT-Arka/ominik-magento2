@@ -7,7 +7,6 @@ use Omnik\Core\Logger\Logger;
 use Omnik\Core\Model\Integration\Sales\Approvation;
 use Omnik\Core\Api\SplitOrderInterface;
 use Omnik\Core\Model\Order\ChildOrderPayment;
-use Omnik\Core\Model\Integration\Order\GetOrder;
 use Omnik\Core\Model\Integration\Params;
 use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\Framework\Api\FilterBuilder;
@@ -43,7 +42,6 @@ class HandleChildOrders
      * @param ChildOrderPayment $childOrderPayment
      * @param Approvation $integrationApprovation
      * @param ProductRepositoryInterface $productRepository
-     * @param GetOrder $getOrder
      * @param OrderFactory $orderFactory
      * @param ConfigHelper $configHelper
      * @param Logger $logger
@@ -56,7 +54,6 @@ class HandleChildOrders
         ChildOrderPayment                           $childOrderPayment,
         Approvation                                 $integrationApprovation,
         private readonly ProductRepositoryInterface $productRepository,
-        private readonly GetOrder                   $getOrder,
         private readonly OrderFactory               $orderFactory,
         private readonly ConfigHelper               $configHelper,
         Logger                                      $logger
@@ -113,15 +110,17 @@ class HandleChildOrders
                     $this->childOrderPayment->cancel($order);
                 }
 
+                // Só faz sentido enviar o status de um filho que já existe na Omnik
+                // (ou seja, que teve o POST de pedido novo confirmado).
                 $isIntegratedOmnik = $this->isIntegratedOrderOmnik($order);
 
-                if (!$isUpdate && $isIntegratedOmnik &&
-                    ($parentOrder->getPayment()->getMethod() == Params::GETNET_CARD)
-                ) {
-                    $this->integrationApprovation->integrate($order);
+                if (!$isIntegratedOmnik) {
+                    continue;
                 }
 
-                if ($isUpdate && $this->isIntegratedOrderOmnik($order)) {
+                $isGetnetCard = $parentOrder->getPayment()->getMethod() == Params::GETNET_CARD;
+
+                if ($isUpdate || $isGetnetCard) {
                     $this->integrationApprovation->integrate($order);
                 }
 
@@ -136,18 +135,24 @@ class HandleChildOrders
     }
 
     /**
+     * Informa se o pedido já foi confirmado na Omnik.
+     *
+     * Usa a flag persistida `sales_order.has_integrated_omnik`, gravada por
+     * IntegrationSalesOmnik::setOrderIntegrated() quando o POST de pedido novo retorna
+     * `orderData`. É a mesma fonte que o gate do ProcessQueue consulta.
+     *
+     * Antes isso era um GET HTTP à Omnik por pedido, o que trazia dois problemas:
+     *  - Falha de transporte (timeout/5xx/DNS) devolvia a mesma resposta de "não existe",
+     *    então o envio do status era pulado silenciosamente e sem retry — o pedido ficava
+     *    sem a confirmação de pagamento na Omnik. Falha de transporte não é NOT_FOUND.
+     *  - Uma chamada de rede por filho dentro do laço, a cada save do pedido pai.
+     *
      * @param $order
      * @return bool
-     * @throws \Magento\Framework\Exception\NoSuchEntityException
      */
     public function isIntegratedOrderOmnik($order)
     {
-        $tenant = $this->getTenant($order);
-        $orderOmnik = $this->getOrder->execute($tenant, $order->getStoreId(), $order->getIncrementId());
-        if (isset($orderOmnik['orderData']['id'])) {
-            return true;
-        }
-        return false;
+        return (bool)$order->getData(SplitOrderInterface::SPLIT_ORDER_HAS_INTEGRATED);
     }
 
     /**

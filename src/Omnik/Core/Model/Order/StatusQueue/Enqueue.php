@@ -30,9 +30,14 @@ class Enqueue
     /**
      * @param OrderInterface $order
      * @param bool $isApproved
+     * @param bool $preserveAttempts Mantém o contador de tentativas de um registro já
+     *        existente em vez de zerá-lo. Usado pela varredura de recuperação
+     *        (BackfillQueue), onde zerar faria um erro permanente ser re-tentado para
+     *        sempre. O caminho normal (mudança real de status) zera, porque ali o
+     *        reenfileiramento representa um fato novo do pedido.
      * @return void
      */
-    public function execute(OrderInterface $order, bool $isApproved): void
+    public function execute(OrderInterface $order, bool $isApproved, bool $preserveAttempts = false): void
     {
         $orderId = (int)$order->getEntityId();
         $incrementId = (string)$order->getIncrementId();
@@ -59,7 +64,9 @@ class Enqueue
                     'worker_token' => null,
                 ],
                 // Colunas atualizadas quando o pedido já está na fila.
-                ['increment_id', 'store_id', 'is_approved', 'status', 'attempts', 'error_body', 'worker_token']
+                $preserveAttempts
+                    ? ['increment_id', 'store_id', 'is_approved', 'status', 'error_body', 'worker_token']
+                    : ['increment_id', 'store_id', 'is_approved', 'status', 'attempts', 'error_body', 'worker_token']
             );
 
             $this->logger->info(sprintf(

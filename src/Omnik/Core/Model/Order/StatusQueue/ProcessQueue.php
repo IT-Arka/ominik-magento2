@@ -12,7 +12,7 @@ use Omnik\Core\Logger\Logger;
 use Omnik\Core\Model\Integration\Order\SendStatus;
 use Omnik\Core\Model\Integration\Params;
 
-/**
+/**                                                                      
  * Processa a fila outbound de status de pedido (Magento -> Omnik).
  *
  * Fluxo, por registro pendente:
