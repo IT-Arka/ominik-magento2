@@ -13,6 +13,7 @@ use Magento\Quote\Model\Quote\Item;
 use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\ConfigurableProduct\Model\Product\Type\Configurable;
 use Magento\Catalog\Model\Product;
+use Magento\Catalog\Model\Product\Type as ProductType;
 
 class ProductsOptions
 {
@@ -219,6 +220,18 @@ class ProductsOptions
     }
 
     /**
+     * Retorna os itens simples agrupados por seller, para montar o payload de frete.
+     *
+     * Dois formatos de item chegam aqui e ambos precisam ser cotados:
+     *
+     * - **Filho de configurável**: `separeItemsByVendor` mantém o filho no grupo vazio e
+     *   coloca o pai no grupo do seller. O filho é resolvido cruzando seu `parentItemId`
+     *   com o item pai, pois é ele que carrega os dados físicos usados na cotação.
+     * - **Simples avulso**: já sai de `separeItemsByVendor` sob o grupo do seller (via
+     *   `variant_seller` do próprio produto) e é emitido diretamente. Antes esses itens
+     *   eram descartados — só o cruzamento por `parentItemId` era considerado —, o que
+     *   gerava payload vazio e fazia o carrier cair no preço fixo de contingência.
+     *
      * @param array $items
      * @return array
      * @throws NoSuchEntityException
@@ -226,24 +239,33 @@ class ProductsOptions
     public function getSimpleItemsByVendor(array $items): array
     {
         $itemsByVendor = $this->separeItemsByVendor($items);
-        $configItems = [];
-        foreach ($itemsByVendor as $key => $item) {
-            if ($key != '') {
-                foreach ($item as $configItem) {
-                    $configItems[$configItem->getItemId()] = $key;
-                }
+
+        $sellerByParentItemId = [];
+        foreach ($itemsByVendor as $seller => $sellerItems) {
+            if ($seller === '') {
+                continue;
+            }
+            foreach ($sellerItems as $sellerItem) {
+                $sellerByParentItemId[$sellerItem->getItemId()] = $seller;
             }
         }
+
         $simpleItems = [];
-        foreach ($itemsByVendor as $key => $item) {
-            if ($key == '') {
-                foreach ($item as $simpleItem) {
-                    if($simpleItem->getProductType() == 'simple'){
-                        if(isset($configItems[$simpleItem->getParentItemId()])){
-                            $simpleItems[$configItems[$simpleItem->getParentItemId()]][] = $simpleItem;
-                        }
-                    }
+        foreach ($itemsByVendor as $seller => $sellerItems) {
+            foreach ($sellerItems as $item) {
+                if ($item->getProductType() !== ProductType::TYPE_SIMPLE) {
+                    continue;
                 }
+
+                $resolvedSeller = $seller !== ''
+                    ? $seller
+                    : ($sellerByParentItemId[$item->getParentItemId()] ?? null);
+
+                if ($resolvedSeller === null) {
+                    continue;
+                }
+
+                $simpleItems[$resolvedSeller][] = $item;
             }
         }
 

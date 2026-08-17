@@ -7,6 +7,7 @@ namespace Omnik\Core\Test\Unit\Model\Config\Configurable;
 use Magento\Catalog\Api\Data\ProductInterface;
 use Magento\Catalog\Model\Product;
 use Magento\Catalog\Model\Product\Attribute\Repository;
+use Magento\Catalog\Model\Product\Type as ProductType;
 use Magento\Catalog\Model\ResourceModel\Eav\Attribute;
 use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\ConfigurableProduct\Model\Product\Type\Configurable;
@@ -179,12 +180,95 @@ class ProductsOptionsTest extends TestCase
         $this->assertSame([$sellerB], $result[self::SELLER_LABEL_2]);
     }
 
+    // ─── getSimpleItemsByVendor (payload de frete) ────────────────────────────
+
+    /**
+     * Simples avulso: sai de separeItemsByVendor já sob o grupo do seller e deve ser
+     * emitido diretamente. Era o caso descartado, que zerava o payload e fazia o
+     * carrier cair no preço fixo de contingência.
+     */
+    public function testStandaloneSimpleIsGroupedForFreight(): void
+    {
+        $item = $this->makeStandaloneSimple('sku-avulso', self::SELLER_CODE, itemId: 10);
+
+        $result = $this->productsOptions->getSimpleItemsByVendor([$item]);
+
+        $this->assertArrayHasKey(self::SELLER_LABEL, $result);
+        $this->assertSame([$item], $result[self::SELLER_LABEL]);
+    }
+
+    /**
+     * Filho de configurável: continua resolvido cruzando parentItemId com o item pai.
+     * Protege o comportamento que já funcionava.
+     */
+    public function testConfigurableChildIsGroupedByParentSeller(): void
+    {
+        $child       = $this->makeChild('sku-config-child', self::SELLER_CODE_2);
+        $parent      = $this->makeConfigurableParent([$child], itemId: 20);
+        $childAsItem = $this->makeConfigurableChildItem('sku-child-item', parentItemId: 20, itemId: 21);
+
+        $result = $this->productsOptions->getSimpleItemsByVendor([$parent, $childAsItem]);
+
+        $this->assertArrayHasKey(self::SELLER_LABEL_2, $result);
+        $this->assertSame([$childAsItem], $result[self::SELLER_LABEL_2]);
+    }
+
+    /**
+     * Carrinho misto: avulso e filho de configurável de sellers distintos coexistem.
+     */
+    public function testMixedCartGroupsBothStandaloneAndConfigurableChild(): void
+    {
+        $standalone  = $this->makeStandaloneSimple('sku-avulso', self::SELLER_CODE, itemId: 10);
+        $child       = $this->makeChild('sku-config-child', self::SELLER_CODE_2);
+        $parent      = $this->makeConfigurableParent([$child], itemId: 20);
+        $childAsItem = $this->makeConfigurableChildItem('sku-child-item', parentItemId: 20, itemId: 21);
+
+        $result = $this->productsOptions->getSimpleItemsByVendor([$standalone, $parent, $childAsItem]);
+
+        $this->assertCount(2, $result);
+        $this->assertSame([$standalone], $result[self::SELLER_LABEL]);
+        $this->assertSame([$childAsItem], $result[self::SELLER_LABEL_2]);
+    }
+
+    /**
+     * Sem seller resolvível não há o que cotar: o item não entra no payload.
+     */
+    public function testItemWithoutResolvableSellerIsExcluded(): void
+    {
+        $item = $this->makeStandaloneSimple('sku-sem-seller', 0, itemId: 10);
+
+        $this->assertSame([], $this->productsOptions->getSimpleItemsByVendor([$item]));
+    }
+
+    /**
+     * O pai configurável carrega o seller, mas quem é cotado é o filho (que tem os
+     * dados físicos). O item pai não pode entrar no payload.
+     */
+    public function testConfigurableParentItselfIsNotIncluded(): void
+    {
+        $child  = $this->makeChild('sku-config-child', self::SELLER_CODE_2);
+        $parent = $this->makeConfigurableParent([$child], itemId: 20);
+
+        $this->assertSame([], $this->productsOptions->getSimpleItemsByVendor([$parent]));
+    }
+
     /**
      * @return Item&MockObject
      */
-    private function makeStandaloneSimple(string $sku, int $sellerCode): Item
-    {
-        return $this->makeItem($sku, hasChildren: false, parentItemId: null, sellerCode: $sellerCode);
+    private function makeStandaloneSimple(
+        string $sku,
+        int $sellerCode,
+        ?int $itemId = null,
+        string $productType = ProductType::TYPE_SIMPLE
+    ): Item {
+        return $this->makeItem(
+            $sku,
+            hasChildren: false,
+            parentItemId: null,
+            sellerCode: $sellerCode,
+            itemId: $itemId,
+            productType: $productType
+        );
     }
 
     /**
@@ -192,20 +276,29 @@ class ProductsOptionsTest extends TestCase
      *
      * @return Item&MockObject
      */
-    private function makeItem(string $sku, bool $hasChildren, ?int $parentItemId, int $sellerCode): Item
-    {
+    private function makeItem(
+        string $sku,
+        bool $hasChildren,
+        ?int $parentItemId,
+        int $sellerCode,
+        ?int $itemId = null,
+        string $productType = ProductType::TYPE_SIMPLE
+    ): Item {
         $this->skuSellerMap[$sku] = $sellerCode;
 
-        // getChildren/getProduct/getSku são reais; getParentItemId/getHasChildren
-        // são mágicos (via __call/DataObject), logo precisam de addMethods().
+        // getChildren/getProduct/getSku/getItemId/getProductType são reais;
+        // getParentItemId/getHasChildren são mágicos (via __call/DataObject),
+        // logo precisam de addMethods().
         $item = $this->getMockBuilder(Item::class)
             ->disableOriginalConstructor()
-            ->onlyMethods(['getChildren', 'getSku'])
+            ->onlyMethods(['getChildren', 'getSku', 'getItemId', 'getProductType'])
             ->addMethods(['getParentItemId', 'getHasChildren'])
             ->getMock();
 
         $item->method('getChildren')->willReturn([]);
         $item->method('getSku')->willReturn($sku);
+        $item->method('getItemId')->willReturn($itemId);
+        $item->method('getProductType')->willReturn($productType);
         $item->method('getParentItemId')->willReturn($parentItemId);
         $item->method('getHasChildren')->willReturn($hasChildren);
 
@@ -248,17 +341,37 @@ class ProductsOptionsTest extends TestCase
      * @param array<int,Item> $children
      * @return Item&MockObject
      */
-    private function makeConfigurableParent(array $children): Item
+    private function makeConfigurableParent(array $children, ?int $itemId = null): Item
     {
         $item = $this->getMockBuilder(Item::class)
             ->disableOriginalConstructor()
-            ->onlyMethods(['getChildren'])
+            ->onlyMethods(['getChildren', 'getItemId', 'getProductType'])
             ->addMethods(['getParentItemId', 'getHasChildren'])
             ->getMock();
         $item->method('getChildren')->willReturn($children);
+        $item->method('getItemId')->willReturn($itemId);
+        $item->method('getProductType')->willReturn(Configurable::TYPE_CODE);
         $item->method('getParentItemId')->willReturn(null);
         $item->method('getHasChildren')->willReturn(true);
 
         return $item;
+    }
+
+    /**
+     * Filho de configurável como ele chega ao frete: item simples com parentItemId
+     * apontando para o item pai.
+     *
+     * @return Item&MockObject
+     */
+    private function makeConfigurableChildItem(string $sku, int $parentItemId, int $itemId): Item
+    {
+        return $this->makeItem(
+            $sku,
+            hasChildren: false,
+            parentItemId: $parentItemId,
+            sellerCode: 0,
+            itemId: $itemId,
+            productType: ProductType::TYPE_SIMPLE
+        );
     }
 }
