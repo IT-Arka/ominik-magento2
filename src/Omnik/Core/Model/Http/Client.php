@@ -400,14 +400,6 @@ use Psr\Log\LoggerInterface;
                 $requestUrl = str_replace('HUBSAN/', '', $requestUrl);
             }
 
-            if (strpos($requestUrl, 'orders/status/new') !== false) {
-                $requestUrl = str_replace('v1/freight', 'HUB', $requestUrl);
-            }
-
-            if (strpos($requestUrl, 'orders/marketplaceid') !== false) {
-                $requestUrl = str_replace('v1/freight', 'HUB', $requestUrl);
-            }
-
             // log the request
             $this->logRequest($requestId, $requestUrl, $params);
 

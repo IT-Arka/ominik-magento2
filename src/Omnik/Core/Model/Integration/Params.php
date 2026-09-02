@@ -94,7 +94,11 @@ class Params
             $idx     = $this->integrationHelper->getStreetIndexes($storeId);
             $params  = [];
 
-            $customer = $this->getCustomer($order->getCustomerId());
+            // Pedido de visitante não tem customer_id: getById(null) lançaria
+            // NoSuchEntityException e o payload inteiro viraria "" (corpo vazio
+            // enviado à Omnik). O telefone, único dado lido do cliente, vem
+            // então dos endereços do próprio pedido.
+            $customer = $order->getCustomerId() ? $this->getCustomer($order->getCustomerId()) : null;
             $address  = $order->getShippingAddress();
 
             $params["createDate"] = $this->formatDateTime($order->getCreatedAt());
@@ -128,7 +132,9 @@ class Params
             $params["customerData"]["addressData"]["stateAcronym"] = $region->getCode();
             $params["customerData"]["addressData"]["country"]     = $region->getCountryId();
 
-            $telephone = $this->telephone->getTelephoneFormattedIntegration($this->getCustomerTelephone($customer) ?? '');
+            $telephone = $this->telephone->getTelephoneFormattedIntegration(
+                $this->getCustomerTelephone($customer) ?: $this->getOrderTelephone($order)
+            );
 
             $params["customerData"]["phones"][0]["type"]   = ConfigInterface::TELEPHONE_TYPE_NORMAL;
             $params["customerData"]["phones"][0]["ddi"]    = ConfigInterface::DDI;
@@ -414,19 +420,43 @@ class Params
     }
 
     /**
-     * @param $customer
+     * @param \Magento\Customer\Api\Data\CustomerInterface|null $customer
      * @return string
      */
     private function getCustomerTelephone($customer): string
     {
+        if ($customer === null) {
+            return '';
+        }
+
         $telephone = '';
-        $addresses = $customer->getAddresses();
+        $addresses = $customer->getAddresses() ?? [];
         foreach ($addresses as $address) {
-            $telephone = $address->getTelephone();
+            $telephone = (string)$address->getTelephone();
             break;
         }
 
         return $telephone;
+    }
+
+    /**
+     * Telefone informado no checkout: endereço de entrega, senão o de cobrança.
+     * É a fonte para pedidos de visitante e o fallback quando o cadastro do
+     * cliente não tem endereço com telefone.
+     *
+     * @param Order|OrderInterface $order
+     * @return string
+     */
+    private function getOrderTelephone($order): string
+    {
+        foreach ([$order->getShippingAddress(), $order->getBillingAddress()] as $address) {
+            $telephone = $address ? (string)$address->getTelephone() : '';
+            if ($telephone !== '') {
+                return $telephone;
+            }
+        }
+
+        return '';
     }
 
     /**

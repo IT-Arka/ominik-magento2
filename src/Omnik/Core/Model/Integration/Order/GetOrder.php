@@ -19,8 +19,9 @@ class GetOrder extends AbstractIntegration
         $path = str_replace('{{marketplaceId}}', $marketplaceid, self::PATH_ORDERS_MARKETPLACE);
 
         $client = $this->getClient($storeId);
-        // $client->setConfig($this->config);
-        // $this->config->set(ConfigInterface::PARAM_SELLER, $sellerTenant);
+        // Mesma regra de SendStatusNew: a URL compartilhada pode estar apontando
+        // para o frete; a consulta de pedido parte sempre da URL de pedidos.
+        $client->getConfig()->set(ConfigInterface::PARAM_URL, $this->getUrl($storeId));
 
         $additionalHeaders[ConfigInterface::PARAM_SELLER] = $sellerTenant;
 
