@@ -28,8 +28,6 @@
     <preference for="Omnik\Core\Api\Data\NotifyOmnikSearchResultsInterface" type="Omnik\Core\Model\NotifyOmnikSearchResults" />
     <preference for="Omnik\Core\Api\Data\NotifyOmnikDataInterface" type="Omnik\Core\Model\Data\NotifyOmnikData" />
 
-    <preference for="Omnik\Core\Api\NotifyTesteInterface" type="Omnik\Core\Model\NotifyTeste" />
-
     <type name="Omnik\Core\Logger\Handler">
         <arguments>
             <argument name="filesystem" xsi:type="object">Magento\Framework\Filesystem\Driver\File</argument>
@@ -167,9 +165,6 @@
 
     <preference for="Magento\ConfigurableProduct\Block\Cart\Item\Renderer\Configurable"
                 type="Omnik\Core\Block\Cart\Item\Renderer\Configurable" />
-
-    <preference for="Omnik\Core\Api\ProductModerationTestInterface"
-                type="Omnik\Core\Model\ProductModerationTest" />
 
     <preference for="Omnik\Core\Api\Data\NotifyProductModerationDataInterface"
                 type="Omnik\Core\Model\Data\NotifyProductModerationData" />
