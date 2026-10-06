@@ -10,21 +10,6 @@
         </resources>
     </route>
 
-    <!-- apis para testar as crons de notificação -->
-    <route url="/V1/notify-omnik/notify-teste" method="POST">
-        <service class="Omnik\Core\Api\NotifyTesteInterface" method="execute"/>
-        <resources>
-            <resource ref="anonymous" />
-        </resources>
-    </route>
-
-    <route url="/V1/notify-omnik/get-product-moderation-test" method="GET">
-        <service class="Omnik\Core\Api\ProductModerationTestInterface" method="execute"/>
-        <resources>
-            <resource ref="anonymous" />
-        </resources>
-    </route>
-
     <route url="/V1/catalog/price-per-seller" method="POST">
         <service class="Omnik\Core\Api\PricePerSellerInterface" method="execute"/>
         <resources>
